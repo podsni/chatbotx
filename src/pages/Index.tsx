@@ -103,6 +103,8 @@ const Index = () => {
                 title: `Chat: ${modelId} ${formattedTime}`,
                 timestamp,
                 modelName: `${provider}:${modelId}`,
+                provider: provider,
+                modelId: modelId,
             };
 
             await chatDB.createSession(newSession);

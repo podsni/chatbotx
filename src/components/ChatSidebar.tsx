@@ -8,6 +8,8 @@ import {
     ChevronUp,
     Calendar,
     Clock,
+    Trash,
+    AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,8 +23,19 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ChatSidebarProps {
     isOpen?: boolean;
@@ -52,6 +65,7 @@ export const ChatSidebar = ({
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
         new Set(["Today"]),
     );
+    const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
     useEffect(() => {
         loadSessions();
@@ -81,6 +95,21 @@ export const ChatSidebar = ({
             }
         } catch (error) {
             console.error("Error deleting session:", error);
+        }
+    };
+
+    const handleDeleteAllSessions = async () => {
+        try {
+            for (const session of sessions) {
+                await chatDB.deleteSession(session.id);
+            }
+            await loadSessions();
+            setShowDeleteAllDialog(false);
+            if (onSessionChange) {
+                onSessionChange("");
+            }
+        } catch (error) {
+            console.error("Error deleting all sessions:", error);
         }
     };
 
@@ -304,7 +333,7 @@ export const ChatSidebar = ({
 
             <div
                 className={cn(
-                    "fixed lg:relative inset-y-0 left-0 z-50 w-[85vw] max-w-[320px] lg:w-80 bg-sidebar border-r border-sidebar-border flex flex-col h-screen transition-transform duration-300 lg:translate-x-0 overflow-hidden",
+                    "fixed lg:relative inset-y-0 left-0 z-50 w-[90vw] max-w-[360px] sm:w-[85vw] sm:max-w-[340px] lg:w-80 bg-sidebar border-r border-sidebar-border flex flex-col h-screen transition-transform duration-300 lg:translate-x-0 overflow-hidden",
                     isOpen ? "translate-x-0" : "-translate-x-full",
                 )}
             >
@@ -322,17 +351,33 @@ export const ChatSidebar = ({
                 <div className="p-3 lg:p-4 border-b border-sidebar-border flex-shrink-0">
                     <div className="flex items-center justify-between mb-2 lg:mb-3">
                         <h2 className="text-xs lg:text-sm font-medium text-sidebar-foreground flex items-center gap-2">
-                            <MessageSquare className="w-4 h-4" />
-                            Chat Sessions
+                            <MessageSquare className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                            <span className="hidden sm:inline">
+                                Chat Sessions
+                            </span>
+                            <span className="sm:hidden">Sessions</span>
                         </h2>
-                        <Badge
-                            variant="outline"
-                            className="text-[9px] px-1.5 py-0"
-                        >
-                            {sessions.length}
-                        </Badge>
+                        <div className="flex items-center gap-1">
+                            <Badge
+                                variant="outline"
+                                className="text-[9px] px-1.5 py-0"
+                            >
+                                {sessions.length}
+                            </Badge>
+                            {sessions.length > 0 && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setShowDeleteAllDialog(true)}
+                                    className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    title="Delete all sessions"
+                                >
+                                    <Trash className="h-3 w-3" />
+                                </Button>
+                            )}
+                        </div>
                     </div>
-                    <ScrollArea className="h-48 lg:h-56">
+                    <ScrollArea className="h-40 sm:h-44 lg:h-56">
                         <div className="space-y-3 pr-2">
                             {sessions.length === 0 ? (
                                 <div className="text-xs text-muted-foreground text-center py-6 px-2">
@@ -351,21 +396,21 @@ export const ChatSidebar = ({
                                             className="w-full flex items-center justify-between px-1 py-1 hover:bg-sidebar-accent/30 rounded transition-colors"
                                         >
                                             <div className="flex items-center gap-1.5">
-                                                <Calendar className="w-3 h-3 text-muted-foreground" />
-                                                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                                                <Calendar className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-muted-foreground" />
+                                                <span className="text-[9px] lg:text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
                                                     {group.label}
                                                 </span>
                                                 <Badge
                                                     variant="secondary"
-                                                    className="text-[8px] px-1 py-0"
+                                                    className="text-[7px] lg:text-[8px] px-1 py-0"
                                                 >
                                                     {group.sessions.length}
                                                 </Badge>
                                             </div>
                                             {expandedGroups.has(group.label) ? (
-                                                <ChevronUp className="w-3 h-3 text-muted-foreground" />
+                                                <ChevronUp className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-muted-foreground" />
                                             ) : (
-                                                <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                                                <ChevronDown className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-muted-foreground" />
                                             )}
                                         </button>
 
@@ -389,9 +434,9 @@ export const ChatSidebar = ({
                                                             }
                                                         >
                                                             <div className="flex items-start gap-2 flex-1 min-w-0 overflow-hidden">
-                                                                <MessageSquare className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-sidebar-foreground flex-shrink-0 mt-0.5" />
+                                                                <MessageSquare className="w-3 h-3 lg:w-3.5 lg:h-3.5 text-sidebar-foreground flex-shrink-0 mt-0.5" />
                                                                 <div className="flex flex-col flex-1 min-w-0 gap-1">
-                                                                    <span className="text-[11px] lg:text-xs text-sidebar-foreground font-medium truncate block leading-tight">
+                                                                    <span className="text-[10px] lg:text-[11px] text-sidebar-foreground font-medium truncate block leading-tight">
                                                                         {
                                                                             session.title
                                                                         }
@@ -400,9 +445,9 @@ export const ChatSidebar = ({
                                                                         <Badge
                                                                             variant="outline"
                                                                             className={cn(
-                                                                                "text-[8px] px-1 py-0",
+                                                                                "text-[7px] lg:text-[8px] px-1 py-0",
                                                                                 getProviderBadgeColor(
-                                                                                    session.provider,
+                                                                                    session.provider as Provider,
                                                                                 ),
                                                                             )}
                                                                         >
@@ -410,14 +455,14 @@ export const ChatSidebar = ({
                                                                                 session.provider,
                                                                             )}
                                                                         </Badge>
-                                                                        <span className="flex items-center gap-1 text-[9px] lg:text-[10px] text-muted-foreground">
-                                                                            <Clock className="w-2.5 h-2.5" />
+                                                                        <span className="flex items-center gap-0.5 text-[8px] lg:text-[9px] text-muted-foreground">
+                                                                            <Clock className="w-2 h-2 lg:w-2.5 lg:h-2.5" />
                                                                             {formatTimestamp(
                                                                                 session.timestamp,
                                                                             )}
                                                                         </span>
                                                                     </div>
-                                                                    <span className="text-[9px] text-muted-foreground truncate">
+                                                                    <span className="text-[8px] lg:text-[9px] text-muted-foreground truncate">
                                                                         {
                                                                             session.modelId
                                                                         }
@@ -443,7 +488,7 @@ export const ChatSidebar = ({
                                                                 </DropdownMenuTrigger>
                                                                 <DropdownMenuContent align="end">
                                                                     <DropdownMenuItem
-                                                                        className="text-destructive"
+                                                                        className="text-destructive focus:text-destructive"
                                                                         onClick={(
                                                                             e,
                                                                         ) => {
@@ -474,17 +519,20 @@ export const ChatSidebar = ({
                     <div className="p-3 lg:p-4 border-b border-sidebar-border">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xs lg:text-sm font-medium text-sidebar-foreground">
-                                All AI Models
+                                <span className="hidden sm:inline">
+                                    All AI Models
+                                </span>
+                                <span className="sm:hidden">Models</span>
                             </h2>
                             <Badge
                                 variant="outline"
                                 className="text-[9px] px-1.5 py-0"
                             >
-                                {aiApi.getAllModels().length} models
+                                {aiApi.getAllModels().length}
                             </Badge>
                         </div>
                         <div className="text-[9px] text-muted-foreground mt-1">
-                            {availableProviders.length} providers available
+                            {availableProviders.length} providers
                         </div>
                     </div>
 
@@ -539,6 +587,36 @@ export const ChatSidebar = ({
                     </div>
                 </div>
             </div>
+
+            <AlertDialog
+                open={showDeleteAllDialog}
+                onOpenChange={setShowDeleteAllDialog}
+            >
+                <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-destructive" />
+                            Delete All Sessions?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete all {sessions.length}{" "}
+                            session(s) and their messages. This action cannot be
+                            undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                        <AlertDialogCancel className="m-0">
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteAllSessions}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 m-0"
+                        >
+                            Delete All
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 };

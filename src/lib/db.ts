@@ -10,6 +10,8 @@ export interface Session {
     title: string;
     timestamp: number;
     modelName: string;
+    provider: string;
+    modelId: string;
     lastMessage?: string;
 }
 

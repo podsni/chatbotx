@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { DEBUG_MODE, debugLog, debugInfo, debugWarn, debugError } from "@/lib/debug";
 import {
     Send,
     Loader2,
@@ -191,7 +192,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
     };
 
     const loadSession = async (sessionId: string) => {
-        console.log('📂 Loading session:', sessionId);
+        debugInfo('📂', 'Loading session:', sessionId);
         try {
             const session = await chatDB.getAgentSession(sessionId);
             if (!session) return;
@@ -199,7 +200,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
             const responses =
                 await chatDB.getAgentResponsesBySession(sessionId);
 
-            console.log('📊 Loaded responses:', {
+            debugInfo('📊', 'Loaded responses:', {
                 sessionId,
                 count: responses.length,
                 responses: responses.map(r => ({
@@ -237,7 +238,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                 }),
             );
 
-            console.log('✓ Setting conversation with', conversationHistory.length, 'turns');
+            debugInfo('✓', 'Setting conversation with', conversationHistory.length, 'turns');
             setConversation(conversationHistory);
             setShowSessions(false);
             toast({
@@ -401,7 +402,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
         // Ensure we have a session
         let sessionId = currentSessionId;
         if (!sessionId) {
-            console.log('⚡ No session, creating new one...');
+            debugInfo('⚡', 'No session, creating new one...');
             const timestamp = Date.now();
             const newSession: AgentSession = {
                 id: `agent-${timestamp}`,
@@ -416,7 +417,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                 setCurrentSessionId(sessionId);
                 setSessionTitle(newSession.title);
                 await loadSessions();
-                console.log('✓ Session created:', sessionId);
+                debugInfo('✓', 'Session created:', sessionId);
             } catch (error) {
                 console.error("Error creating session:", error);
                 toast({
@@ -434,7 +435,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
 
         const turnId = `turn-${Date.now()}`;
         
-        console.log('🚀 Starting message send:', {
+        debugInfo('🚀', 'Starting message send:', {
             sessionId,
             models: selectedModels.length,
             hasSession: !!sessionId
@@ -527,7 +528,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                             metadata: metadata,
                         });
                         
-                        console.log(`✓ Collected response ${index + 1}/${selectedModels.length}:`, {
+                        debugInfo('✓', `Collected response ${index + 1}/${selectedModels.length}:`, {
                             provider: model.provider,
                             contentLength: content.length,
                             model: model.modelName
@@ -626,7 +627,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                     })),
                 };
 
-                console.log('💾 Saving agent response:', {
+                debugInfo('💾', 'Saving agent response:', {
                     sessionId: sessionId,
                     turnId,
                     responses: finalResponses.length,
@@ -635,7 +636,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
 
                 await chatDB.addAgentResponse(agentResponse);
                 
-                console.log('✓ Agent response saved successfully');
+                debugInfo('✓', 'Agent response saved successfully');
 
                 // Update session lastMessage
                 const session = await chatDB.getAgentSession(sessionId);
@@ -643,10 +644,10 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                     session.lastMessage = userMessage.substring(0, 50);
                     session.timestamp = Date.now();
                     await chatDB.updateAgentSession(session);
-                    console.log('✓ Session updated');
+                    debugInfo('✓', 'Session updated');
                 }
             } else {
-                console.warn('⚠️ No session or responses to save');
+                debugWarn('⚠️ No session or responses to save');
             }
         } catch (error) {
             console.error("❌ Error saving to database:", error);
@@ -724,7 +725,8 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                     Sessions
                                 </span>
                             </Button>
-                            {process.env.NODE_ENV === 'development' && (
+                            {/* Debug Button - Controlled by VITE_DEBUG_MODE */}
+                            {DEBUG_MODE && (
                                 <Button
                                     variant="ghost"
                                     size="sm"

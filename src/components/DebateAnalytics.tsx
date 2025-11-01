@@ -271,10 +271,23 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
     };
 
     // Tree visualization data
-    const debateTree = useMemo(() => {
-        const tree: any[] = [];
+    interface DebateTreeNode {
+        id: string;
+        type: string;
+        arguments: Array<{
+            debater: string;
+            emoji: string;
+            preview: string;
+            beliefUpdate?: number;
+        }>;
+        votes: number;
+        consensus: boolean;
+    }
+
+    const debateTree = useMemo<DebateTreeNode[]>(() => {
+        const tree: DebateTreeNode[] = [];
         session.rounds.forEach((round, roundIdx) => {
-            const node = {
+            const node: DebateTreeNode = {
                 id: `round-${roundIdx}`,
                 type: round.type,
                 arguments: round.arguments.map((arg) => {
@@ -807,7 +820,7 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                                                         {/* Arguments in this round */}
                                                         {node.arguments.map(
                                                             (
-                                                                arg: any,
+                                                                arg,
                                                                 argIdx: number,
                                                             ) => (
                                                                 <div

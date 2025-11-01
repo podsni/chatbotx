@@ -6,6 +6,8 @@ import {
     Trash2,
     ChevronDown,
     ChevronUp,
+    Calendar,
+    Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -30,6 +32,11 @@ interface ChatSidebarProps {
     onNewSession?: (provider: Provider, modelId: string) => void;
 }
 
+interface GroupedSessions {
+    label: string;
+    sessions: Session[];
+}
+
 export const ChatSidebar = ({
     isOpen = true,
     onClose,
@@ -42,8 +49,10 @@ export const ChatSidebar = ({
     const [expandedProvider, setExpandedProvider] = useState<Provider | null>(
         "poe",
     );
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+        new Set(["Today"]),
+    );
 
-    // Load sessions from IndexedDB
     useEffect(() => {
         loadSessions();
     }, []);
@@ -62,7 +71,6 @@ export const ChatSidebar = ({
             await chatDB.deleteSession(sessionId);
             await loadSessions();
 
-            // If deleted session was current, clear selection
             if (currentSessionId === sessionId && sessions.length > 0) {
                 const remainingSessions = sessions.filter(
                     (s) => s.id !== sessionId,
@@ -89,6 +97,67 @@ export const ChatSidebar = ({
             minute: "2-digit",
             hour12: true,
         });
+    };
+
+    const formatDate = (timestamp: number) => {
+        const date = new Date(timestamp);
+        return date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+        });
+    };
+
+    const groupSessionsByDate = (): GroupedSessions[] => {
+        const now = new Date();
+        const today = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+        );
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const lastWeek = new Date(today);
+        lastWeek.setDate(lastWeek.getDate() - 7);
+
+        const groups: { [key: string]: Session[] } = {
+            Today: [],
+            Yesterday: [],
+            "Last 7 Days": [],
+            Older: [],
+        };
+
+        sessions.forEach((session) => {
+            const sessionDate = new Date(session.timestamp);
+            const sessionDay = new Date(
+                sessionDate.getFullYear(),
+                sessionDate.getMonth(),
+                sessionDate.getDate(),
+            );
+
+            if (sessionDay.getTime() === today.getTime()) {
+                groups.Today.push(session);
+            } else if (sessionDay.getTime() === yesterday.getTime()) {
+                groups.Yesterday.push(session);
+            } else if (sessionDate >= lastWeek) {
+                groups["Last 7 Days"].push(session);
+            } else {
+                groups.Older.push(session);
+            }
+        });
+
+        return Object.entries(groups)
+            .filter(([_, sessions]) => sessions.length > 0)
+            .map(([label, sessions]) => ({ label, sessions }));
+    };
+
+    const toggleGroup = (label: string) => {
+        const newExpanded = new Set(expandedGroups);
+        if (newExpanded.has(label)) {
+            newExpanded.delete(label);
+        } else {
+            newExpanded.add(label);
+        }
+        setExpandedGroups(newExpanded);
     };
 
     const availableProviders = aiApi.getAvailableProviders();
@@ -122,9 +191,27 @@ export const ChatSidebar = ({
         }
     };
 
+    const getProviderDisplayName = (provider: string) => {
+        switch (provider) {
+            case "poe":
+                return "Poe";
+            case "together":
+                return "Together";
+            case "groq":
+                return "Groq";
+            default:
+                return provider;
+        }
+    };
+
     const renderProviderSection = (
         provider: Provider,
-        models: any[],
+        models: Array<{
+            id: string;
+            name: string;
+            description: string;
+            speed: string;
+        }>,
         providerName: string,
     ) => {
         const isExpanded = expandedProvider === provider;
@@ -204,9 +291,10 @@ export const ChatSidebar = ({
         );
     };
 
+    const groupedSessions = groupSessionsByDate();
+
     return (
         <>
-            {/* Mobile Overlay */}
             {isOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -214,14 +302,12 @@ export const ChatSidebar = ({
                 />
             )}
 
-            {/* Sidebar */}
             <div
                 className={cn(
                     "fixed lg:relative inset-y-0 left-0 z-50 w-[85vw] max-w-[320px] lg:w-80 bg-sidebar border-r border-sidebar-border flex flex-col h-screen transition-transform duration-300 lg:translate-x-0 overflow-hidden",
                     isOpen ? "translate-x-0" : "-translate-x-full",
                 )}
             >
-                {/* Mobile Close Button */}
                 <div className="lg:hidden flex justify-end p-2 border-b border-sidebar-border">
                     <Button
                         variant="ghost"
@@ -233,72 +319,150 @@ export const ChatSidebar = ({
                     </Button>
                 </div>
 
-                {/* Sessions Section */}
                 <div className="p-3 lg:p-4 border-b border-sidebar-border flex-shrink-0">
-                    <h2 className="text-xs lg:text-sm font-medium text-sidebar-foreground mb-2 lg:mb-3">
-                        Sessions
-                    </h2>
-                    <ScrollArea className="h-28 lg:h-32">
-                        <div className="space-y-1.5 lg:space-y-2 pr-2">
+                    <div className="flex items-center justify-between mb-2 lg:mb-3">
+                        <h2 className="text-xs lg:text-sm font-medium text-sidebar-foreground flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4" />
+                            Chat Sessions
+                        </h2>
+                        <Badge
+                            variant="outline"
+                            className="text-[9px] px-1.5 py-0"
+                        >
+                            {sessions.length}
+                        </Badge>
+                    </div>
+                    <ScrollArea className="h-48 lg:h-56">
+                        <div className="space-y-3 pr-2">
                             {sessions.length === 0 ? (
-                                <div className="text-xs text-muted-foreground text-center py-4">
-                                    No sessions yet. Create a new chat!
+                                <div className="text-xs text-muted-foreground text-center py-6 px-2">
+                                    No sessions yet. Create a new chat below!
                                 </div>
                             ) : (
-                                sessions.map((session) => (
+                                groupedSessions.map((group) => (
                                     <div
-                                        key={session.id}
-                                        className={cn(
-                                            "flex items-center justify-between p-2 rounded hover:bg-sidebar-accent/80 cursor-pointer group",
-                                            currentSessionId === session.id
-                                                ? "bg-sidebar-accent"
-                                                : "bg-sidebar-accent/50",
-                                        )}
-                                        onClick={() =>
-                                            onSessionChange?.(session.id)
-                                        }
+                                        key={group.label}
+                                        className="space-y-1"
                                     >
-                                        <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
-                                            <MessageSquare className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-sidebar-foreground flex-shrink-0" />
-                                            <div className="flex flex-col flex-1 min-w-0">
-                                                <span className="text-[10px] lg:text-xs text-sidebar-foreground truncate block">
-                                                    {session.title}
+                                        <button
+                                            onClick={() =>
+                                                toggleGroup(group.label)
+                                            }
+                                            className="w-full flex items-center justify-between px-1 py-1 hover:bg-sidebar-accent/30 rounded transition-colors"
+                                        >
+                                            <div className="flex items-center gap-1.5">
+                                                <Calendar className="w-3 h-3 text-muted-foreground" />
+                                                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                                                    {group.label}
                                                 </span>
-                                                <span className="text-[9px] lg:text-[10px] text-muted-foreground">
-                                                    {formatTimestamp(
-                                                        session.timestamp,
-                                                    )}
-                                                </span>
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="text-[8px] px-1 py-0"
+                                                >
+                                                    {group.sessions.length}
+                                                </Badge>
                                             </div>
-                                        </div>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-5 w-5 lg:h-6 lg:w-6 opacity-0 group-hover:opacity-100 flex-shrink-0"
-                                                    onClick={(e) =>
-                                                        e.stopPropagation()
-                                                    }
-                                                >
-                                                    <MoreVertical className="h-3 w-3" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem
-                                                    className="text-destructive"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteSession(
-                                                            session.id,
-                                                        );
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-3 w-3 mr-2" />
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                            {expandedGroups.has(group.label) ? (
+                                                <ChevronUp className="w-3 h-3 text-muted-foreground" />
+                                            ) : (
+                                                <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                                            )}
+                                        </button>
+
+                                        {expandedGroups.has(group.label) && (
+                                            <div className="space-y-1 ml-1">
+                                                {group.sessions.map(
+                                                    (session) => (
+                                                        <div
+                                                            key={session.id}
+                                                            className={cn(
+                                                                "flex items-start justify-between p-2 rounded hover:bg-sidebar-accent/80 cursor-pointer group transition-all",
+                                                                currentSessionId ===
+                                                                    session.id
+                                                                    ? "bg-sidebar-accent border-l-2 border-blue-500"
+                                                                    : "bg-sidebar-accent/30",
+                                                            )}
+                                                            onClick={() =>
+                                                                onSessionChange?.(
+                                                                    session.id,
+                                                                )
+                                                            }
+                                                        >
+                                                            <div className="flex items-start gap-2 flex-1 min-w-0 overflow-hidden">
+                                                                <MessageSquare className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-sidebar-foreground flex-shrink-0 mt-0.5" />
+                                                                <div className="flex flex-col flex-1 min-w-0 gap-1">
+                                                                    <span className="text-[11px] lg:text-xs text-sidebar-foreground font-medium truncate block leading-tight">
+                                                                        {
+                                                                            session.title
+                                                                        }
+                                                                    </span>
+                                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                                        <Badge
+                                                                            variant="outline"
+                                                                            className={cn(
+                                                                                "text-[8px] px-1 py-0",
+                                                                                getProviderBadgeColor(
+                                                                                    session.provider,
+                                                                                ),
+                                                                            )}
+                                                                        >
+                                                                            {getProviderDisplayName(
+                                                                                session.provider,
+                                                                            )}
+                                                                        </Badge>
+                                                                        <span className="flex items-center gap-1 text-[9px] lg:text-[10px] text-muted-foreground">
+                                                                            <Clock className="w-2.5 h-2.5" />
+                                                                            {formatTimestamp(
+                                                                                session.timestamp,
+                                                                            )}
+                                                                        </span>
+                                                                    </div>
+                                                                    <span className="text-[9px] text-muted-foreground truncate">
+                                                                        {
+                                                                            session.modelId
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger
+                                                                    asChild
+                                                                >
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-5 w-5 lg:h-6 lg:w-6 opacity-0 group-hover:opacity-100 flex-shrink-0"
+                                                                        onClick={(
+                                                                            e,
+                                                                        ) =>
+                                                                            e.stopPropagation()
+                                                                        }
+                                                                    >
+                                                                        <MoreVertical className="h-3 w-3" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem
+                                                                        className="text-destructive"
+                                                                        onClick={(
+                                                                            e,
+                                                                        ) => {
+                                                                            e.stopPropagation();
+                                                                            handleDeleteSession(
+                                                                                session.id,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        <Trash2 className="h-3 w-3 mr-2" />
+                                                                        Delete
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+                                                    ),
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             )}
@@ -306,7 +470,6 @@ export const ChatSidebar = ({
                     </ScrollArea>
                 </div>
 
-                {/* All AI Models - List View */}
                 <div className="flex-1 overflow-hidden flex flex-col">
                     <div className="p-3 lg:p-4 border-b border-sidebar-border">
                         <div className="flex items-center justify-between">
@@ -339,7 +502,6 @@ export const ChatSidebar = ({
                     </ScrollArea>
                 </div>
 
-                {/* RAG Section */}
                 <div className="p-3 lg:p-4 border-t border-sidebar-border flex-shrink-0">
                     <div className="flex items-center justify-between mb-2 lg:mb-3">
                         <h2 className="text-xs lg:text-sm font-medium text-sidebar-foreground">

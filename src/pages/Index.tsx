@@ -11,7 +11,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { ModelSelector } from "@/components/ModelSelector";
-import { Provider } from "@/lib/aiApi";
+import { Provider, aiApi } from "@/lib/aiApi";
 
 const Index = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -31,6 +31,13 @@ const Index = () => {
     // Initialize database
     useEffect(() => {
         initializeDB();
+        // Debug providers
+        console.log("🔍 Available Providers:", aiApi.getAvailableProviders());
+        console.log("📊 Total Models:", aiApi.getAllModels().length);
+        console.log(
+            "🔑 Groq Key:",
+            import.meta.env.VITE_GROQ_API_KEY ? "✅ Set" : "❌ Missing",
+        );
     }, []);
 
     // Check if we need to show welcome dialog

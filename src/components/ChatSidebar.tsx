@@ -10,6 +10,7 @@ import {
     Clock,
     Trash,
     AlertTriangle,
+    Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -43,6 +44,7 @@ interface ChatSidebarProps {
     currentSessionId?: string;
     onSessionChange?: (sessionId: string) => void;
     onNewSession?: (provider: Provider, modelId: string) => void;
+    onOpenAgentMode?: () => void;
 }
 
 interface GroupedSessions {
@@ -56,6 +58,7 @@ export const ChatSidebar = ({
     currentSessionId,
     onSessionChange,
     onNewSession,
+    onOpenAgentMode,
 }: ChatSidebarProps) => {
     const [sessions, setSessions] = useState<Session[]>([]);
     const [ragEnabled, setRagEnabled] = useState(true);
@@ -517,7 +520,7 @@ export const ChatSidebar = ({
 
                 <div className="flex-1 overflow-hidden flex flex-col">
                     <div className="p-3 lg:p-4 border-b border-sidebar-border">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between mb-2">
                             <h2 className="text-xs lg:text-sm font-medium text-sidebar-foreground">
                                 <span className="hidden sm:inline">
                                     All AI Models
@@ -531,8 +534,23 @@ export const ChatSidebar = ({
                                 {aiApi.getAllModels().length}
                             </Badge>
                         </div>
-                        <div className="text-[9px] text-muted-foreground mt-1">
-                            {availableProviders.length} providers
+                        <div className="flex items-center justify-between">
+                            <div className="text-[9px] text-muted-foreground">
+                                {availableProviders.length} providers
+                            </div>
+                            {onOpenAgentMode && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={onOpenAgentMode}
+                                    className="h-7 text-[10px] lg:text-xs gap-1"
+                                >
+                                    <Zap className="w-3 h-3" />
+                                    <span className="hidden sm:inline">
+                                        Agent Mode
+                                    </span>
+                                </Button>
+                            )}
                         </div>
                     </div>
 

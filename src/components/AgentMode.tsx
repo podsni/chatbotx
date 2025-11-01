@@ -1,13 +1,27 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Loader2, X, CheckSquare, Square, Zap } from "lucide-react";
+import {
+    Send,
+    Loader2,
+    X,
+    CheckSquare,
+    Square,
+    Zap,
+    Trash2,
+    MessageSquare,
+    Plus,
+    Edit2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { aiApi, Provider } from "@/lib/aiApi";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { cn } from "@/lib/utils";
+import { chatDB, AgentSession, AgentResponse } from "@/lib/db";
+import { useToast } from "@/hooks/use-toast";
 import {
     Dialog,
     DialogContent,
@@ -15,6 +29,16 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ModelSelection {
     provider: Provider;
@@ -36,6 +60,13 @@ interface ModelResponse {
     };
 }
 
+interface ConversationTurn {
+    id: string;
+    userMessage: string;
+    responses: ModelResponse[];
+    timestamp: number;
+}
+
 interface AgentModeProps {
     isOpen: boolean;
     onClose: () => void;
@@ -44,15 +75,25 @@ interface AgentModeProps {
 export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
     const [selectedModels, setSelectedModels] = useState<ModelSelection[]>([]);
     const [input, setInput] = useState("");
-    const [responses, setResponses] = useState<ModelResponse[]>([]);
+    const [conversation, setConversation] = useState<ConversationTurn[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [sessions, setSessions] = useState<AgentSession[]>([]);
+    const [currentSessionId, setCurrentSessionId] = useState<string | null>(
+        null,
+    );
+    const [sessionTitle, setSessionTitle] = useState("");
+    const [showSessions, setShowSessions] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const scrollRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+    const conversationEndRef = useRef<HTMLDivElement>(null);
+    const { toast } = useToast();
 
     const allModels = aiApi.getAllModels();
     const availableProviders = aiApi.getAvailableProviders();
 
-    // Quick select presets
+    // Quick presets
     const quickPresets = [
         {
             name: "Fast Trio",
@@ -81,22 +122,13 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                 },
             ],
         },
-        {
-            name: "All Providers",
-            icon: "🌐",
-            models: [
-                { provider: "poe" as Provider, modelId: "GPT-5-mini" },
-                {
-                    provider: "together" as Provider,
-                    modelId: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-                },
-                {
-                    provider: "groq" as Provider,
-                    modelId: "llama-3.1-8b-instant",
-                },
-            ],
-        },
     ];
+
+    useEffect(() => {
+        if (isOpen) {
+            loadSessions();
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         if (textareaRef.current) {
@@ -105,6 +137,155 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                 textareaRef.current.scrollHeight + "px";
         }
     }, [input]);
+
+    useEffect(() => {
+        conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [conversation]);
+
+    const loadSessions = async () => {
+        try {
+            const allSessions = await chatDB.getAllAgentSessions();
+            setSessions(allSessions);
+        } catch (error) {
+            console.error("Error loading agent sessions:", error);
+        }
+    };
+
+    const createNewSession = async () => {
+        if (selectedModels.length === 0) {
+            toast({
+                title: "No models selected",
+                description: "Please select at least one model first",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        const timestamp = Date.now();
+        const newSession: AgentSession = {
+            id: `agent-${timestamp}`,
+            title: `Agent Chat ${new Date(timestamp).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`,
+            timestamp,
+            models: selectedModels,
+        };
+
+        try {
+            await chatDB.createAgentSession(newSession);
+            setCurrentSessionId(newSession.id);
+            setSessionTitle(newSession.title);
+            setConversation([]);
+            await loadSessions();
+            setShowSessions(false);
+            toast({
+                title: "Session Created",
+                description: `New agent session with ${selectedModels.length} models`,
+            });
+        } catch (error) {
+            console.error("Error creating session:", error);
+            toast({
+                title: "Error",
+                description: "Failed to create session",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const loadSession = async (sessionId: string) => {
+        try {
+            const session = await chatDB.getAgentSession(sessionId);
+            if (!session) return;
+
+            const responses =
+                await chatDB.getAgentResponsesBySession(sessionId);
+
+            setCurrentSessionId(sessionId);
+            setSessionTitle(session.title);
+            setSelectedModels(
+                session.models.map((m) => ({
+                    provider: m.provider as Provider,
+                    modelId: m.modelId,
+                    modelName: m.modelName,
+                })),
+            );
+
+            // Convert stored responses to conversation format
+            const conversationHistory: ConversationTurn[] = responses.map(
+                (resp) => ({
+                    id: resp.id,
+                    userMessage: resp.userMessage,
+                    timestamp: resp.timestamp,
+                    responses: resp.responses.map((r) => ({
+                        provider: r.provider as Provider,
+                        modelId: r.modelId,
+                        modelName: r.modelName,
+                        content: r.content,
+                        isLoading: false,
+                        error: r.error,
+                        metadata: r.metadata,
+                    })),
+                }),
+            );
+
+            setConversation(conversationHistory);
+            setShowSessions(false);
+            toast({
+                title: "Session Loaded",
+                description: session.title,
+            });
+        } catch (error) {
+            console.error("Error loading session:", error);
+            toast({
+                title: "Error",
+                description: "Failed to load session",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const updateSessionTitle = async (newTitle: string) => {
+        if (!currentSessionId || !newTitle.trim()) return;
+
+        try {
+            const session = await chatDB.getAgentSession(currentSessionId);
+            if (session) {
+                session.title = newTitle.trim();
+                await chatDB.updateAgentSession(session);
+                setSessionTitle(newTitle.trim());
+                await loadSessions();
+                setIsEditingTitle(false);
+                toast({
+                    title: "Title Updated",
+                    description: "Session title has been updated",
+                });
+            }
+        } catch (error) {
+            console.error("Error updating title:", error);
+        }
+    };
+
+    const deleteSession = async (sessionId: string) => {
+        try {
+            await chatDB.deleteAgentSession(sessionId);
+            await loadSessions();
+            if (currentSessionId === sessionId) {
+                setCurrentSessionId(null);
+                setConversation([]);
+                setSessionTitle("");
+            }
+            setShowDeleteDialog(false);
+            toast({
+                title: "Session Deleted",
+                description: "Agent session has been deleted",
+            });
+        } catch (error) {
+            console.error("Error deleting session:", error);
+            toast({
+                title: "Error",
+                description: "Failed to delete session",
+                variant: "destructive",
+            });
+        }
+    };
 
     const toggleModelSelection = (
         provider: Provider,
@@ -135,6 +316,22 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
         );
     };
 
+    const applyQuickPreset = (preset: (typeof quickPresets)[0]) => {
+        const newSelections: ModelSelection[] = [];
+        preset.models.forEach(({ provider, modelId }) => {
+            const models = aiApi.getModelsByProvider(provider);
+            const model = models.find((m) => m.id === modelId);
+            if (model && availableProviders.includes(provider)) {
+                newSelections.push({
+                    provider,
+                    modelId,
+                    modelName: model.name,
+                });
+            }
+        });
+        setSelectedModels(newSelections);
+    };
+
     const getProviderColor = (provider: Provider) => {
         switch (provider) {
             case "poe":
@@ -161,14 +358,46 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
         }
     };
 
-    const handleSendToMultipleModels = async () => {
+    const buildContextMessages = (userMessage: string) => {
+        const contextMessages: Array<{
+            role: "user" | "assistant";
+            content: string;
+        }> = [];
+
+        // Add previous conversation turns
+        conversation.forEach((turn) => {
+            contextMessages.push({ role: "user", content: turn.userMessage });
+
+            // Add first model's response as context (or aggregate if needed)
+            if (turn.responses.length > 0 && turn.responses[0].content) {
+                contextMessages.push({
+                    role: "assistant",
+                    content: turn.responses[0].content,
+                });
+            }
+        });
+
+        // Add current message
+        contextMessages.push({ role: "user", content: userMessage });
+
+        return contextMessages;
+    };
+
+    const handleSendMessage = async () => {
         if (!input.trim() || selectedModels.length === 0) return;
+        if (!currentSessionId) {
+            await createNewSession();
+            if (!currentSessionId) return;
+        }
 
         setIsProcessing(true);
         const userMessage = input.trim();
         setInput("");
 
-        // Initialize responses for all selected models
+        const turnId = `turn-${Date.now()}`;
+        const contextMessages = buildContextMessages(userMessage);
+
+        // Initialize empty responses
         const initialResponses: ModelResponse[] = selectedModels.map(
             (model) => ({
                 provider: model.provider,
@@ -179,7 +408,14 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
             }),
         );
 
-        setResponses(initialResponses);
+        const newTurn: ConversationTurn = {
+            id: turnId,
+            userMessage,
+            responses: initialResponses,
+            timestamp: Date.now(),
+        };
+
+        setConversation((prev) => [...prev, newTurn]);
 
         // Send to all models in parallel
         const promises = selectedModels.map(async (model, index) => {
@@ -192,22 +428,32 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                     {
                         provider: model.provider,
                         model: model.modelId,
-                        messages: [{ role: "user", content: userMessage }],
+                        messages: contextMessages,
                     },
-                    // onChunk
                     (chunk: string) => {
                         content += chunk;
                         tokenCount = content.split(/\s+/).length;
 
-                        setResponses((prev) =>
-                            prev.map((r, i) =>
-                                i === index
-                                    ? { ...r, content, isLoading: true }
-                                    : r,
+                        setConversation((prev) =>
+                            prev.map((turn) =>
+                                turn.id === turnId
+                                    ? {
+                                          ...turn,
+                                          responses: turn.responses.map(
+                                              (r, i) =>
+                                                  i === index
+                                                      ? {
+                                                            ...r,
+                                                            content,
+                                                            isLoading: true,
+                                                        }
+                                                      : r,
+                                          ),
+                                      }
+                                    : turn,
                             ),
                         );
                     },
-                    // onComplete
                     () => {
                         const endTime = Date.now();
                         const duration = ((endTime - startTime) / 1000).toFixed(
@@ -224,120 +470,227 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                             speed: `${tokensPerSecond} tok/s`,
                         };
 
-                        setResponses((prev) =>
-                            prev.map((r, i) =>
-                                i === index
+                        setConversation((prev) =>
+                            prev.map((turn) =>
+                                turn.id === turnId
                                     ? {
-                                          ...r,
-                                          content,
-                                          isLoading: false,
-                                          metadata,
+                                          ...turn,
+                                          responses: turn.responses.map(
+                                              (r, i) =>
+                                                  i === index
+                                                      ? {
+                                                            ...r,
+                                                            content,
+                                                            isLoading: false,
+                                                            metadata,
+                                                        }
+                                                      : r,
+                                          ),
                                       }
-                                    : r,
+                                    : turn,
                             ),
                         );
                     },
-                    // onError
                     (error: Error) => {
-                        setResponses((prev) =>
-                            prev.map((r, i) =>
-                                i === index
+                        setConversation((prev) =>
+                            prev.map((turn) =>
+                                turn.id === turnId
                                     ? {
-                                          ...r,
-                                          isLoading: false,
-                                          error: error.message,
+                                          ...turn,
+                                          responses: turn.responses.map(
+                                              (r, i) =>
+                                                  i === index
+                                                      ? {
+                                                            ...r,
+                                                            isLoading: false,
+                                                            error: error.message,
+                                                        }
+                                                      : r,
+                                          ),
                                       }
-                                    : r,
+                                    : turn,
                             ),
                         );
                     },
                 );
             } catch (error) {
-                setResponses((prev) =>
-                    prev.map((r, i) =>
-                        i === index
+                setConversation((prev) =>
+                    prev.map((turn) =>
+                        turn.id === turnId
                             ? {
-                                  ...r,
-                                  isLoading: false,
-                                  error:
-                                      error instanceof Error
-                                          ? error.message
-                                          : "Unknown error",
+                                  ...turn,
+                                  responses: turn.responses.map((r, i) =>
+                                      i === index
+                                          ? {
+                                                ...r,
+                                                isLoading: false,
+                                                error:
+                                                    error instanceof Error
+                                                        ? error.message
+                                                        : "Unknown error",
+                                            }
+                                          : r,
+                                  ),
                               }
-                            : r,
+                            : turn,
                     ),
                 );
             }
         });
 
         await Promise.all(promises);
+
+        // Save to database
+        try {
+            const turnToSave = conversation.find((t) => t.id === turnId);
+            if (turnToSave && currentSessionId) {
+                const agentResponse: AgentResponse = {
+                    id: turnId,
+                    sessionId: currentSessionId,
+                    userMessage,
+                    timestamp: Date.now(),
+                    responses: turnToSave.responses.map((r) => ({
+                        provider: r.provider,
+                        modelId: r.modelId,
+                        modelName: r.modelName,
+                        content: r.content,
+                        metadata: r.metadata,
+                        error: r.error,
+                    })),
+                };
+
+                await chatDB.addAgentResponse(agentResponse);
+
+                // Update session lastMessage
+                const session = await chatDB.getAgentSession(currentSessionId);
+                if (session) {
+                    session.lastMessage = userMessage.substring(0, 50);
+                    session.timestamp = Date.now();
+                    await chatDB.updateAgentSession(session);
+                }
+            }
+        } catch (error) {
+            console.error("Error saving to database:", error);
+        }
+
         setIsProcessing(false);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            handleSendToMultipleModels();
+            handleSendMessage();
         }
-    };
-
-    const clearResponses = () => {
-        setResponses([]);
-    };
-
-    const applyQuickPreset = (preset: (typeof quickPresets)[0]) => {
-        const newSelections: ModelSelection[] = [];
-
-        preset.models.forEach(({ provider, modelId }) => {
-            const models = aiApi.getModelsByProvider(provider);
-            const model = models.find((m) => m.id === modelId);
-            if (model && availableProviders.includes(provider)) {
-                newSelections.push({
-                    provider,
-                    modelId,
-                    modelName: model.name,
-                });
-            }
-        });
-
-        setSelectedModels(newSelections);
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-[95vw] w-full h-[90vh] max-h-[90vh] p-0 gap-0 flex flex-col">
-                <DialogHeader className="px-4 lg:px-6 py-4 border-b border-border flex-shrink-0">
-                    <DialogTitle className="flex items-center gap-2 text-lg">
-                        <Zap className="w-5 h-5 text-primary" />
-                        Agent Mode - Multi-Model Comparison
-                    </DialogTitle>
-                    <DialogDescription className="text-xs lg:text-sm">
-                        Select multiple models and compare their responses
-                        side-by-side
+            <DialogContent className="max-w-[98vw] sm:max-w-[95vw] w-full h-[95vh] max-h-[95vh] p-0 gap-0 flex flex-col">
+                <DialogHeader className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-b border-border flex-shrink-0">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+                            {currentSessionId && !isEditingTitle ? (
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <DialogTitle className="text-sm sm:text-base lg:text-lg truncate">
+                                        {sessionTitle}
+                                    </DialogTitle>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 flex-shrink-0"
+                                        onClick={() => setIsEditingTitle(true)}
+                                    >
+                                        <Edit2 className="w-3 h-3" />
+                                    </Button>
+                                </div>
+                            ) : isEditingTitle ? (
+                                <Input
+                                    value={sessionTitle}
+                                    onChange={(e) =>
+                                        setSessionTitle(e.target.value)
+                                    }
+                                    onBlur={() =>
+                                        updateSessionTitle(sessionTitle)
+                                    }
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            updateSessionTitle(sessionTitle);
+                                        }
+                                    }}
+                                    className="h-8 text-sm"
+                                    autoFocus
+                                />
+                            ) : (
+                                <DialogTitle className="text-sm sm:text-base lg:text-lg">
+                                    Agent Mode
+                                </DialogTitle>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                            <Badge
+                                variant="outline"
+                                className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0"
+                            >
+                                {selectedModels.length} models
+                            </Badge>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowSessions(!showSessions)}
+                                className="h-7 sm:h-8 text-[10px] sm:text-xs"
+                            >
+                                <MessageSquare className="w-3 h-3 sm:mr-1" />
+                                <span className="hidden sm:inline">
+                                    Sessions
+                                </span>
+                            </Button>
+                        </div>
+                    </div>
+                    <DialogDescription className="text-[10px] sm:text-xs">
+                        Multi-model comparison with continuous context
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 lg:p-6 overflow-hidden min-h-0">
-                    {/* Model Selection Panel */}
-                    <div className="w-full lg:w-80 flex-shrink-0 flex flex-col border border-border rounded-lg overflow-hidden">
-                        <div className="p-3 border-b border-border bg-sidebar-accent/50">
-                            <h3 className="text-sm font-semibold flex items-center justify-between mb-2">
-                                Select Models
-                                <Badge
-                                    variant="outline"
-                                    className="text-[9px] px-1.5 py-0"
-                                >
-                                    {selectedModels.length} selected
-                                </Badge>
-                            </h3>
-                            {/* Quick Presets */}
-                            <div className="flex gap-1 flex-wrap">
+                <div className="flex-1 flex flex-col lg:flex-row gap-2 sm:gap-3 lg:gap-4 p-2 sm:p-3 lg:p-4 overflow-hidden min-h-0">
+                    {/* Sessions Sidebar - Mobile Overlay */}
+                    {showSessions && (
+                        <div
+                            className="fixed inset-0 bg-black/50 z-50 lg:hidden"
+                            onClick={() => setShowSessions(false)}
+                        />
+                    )}
+
+                    <div
+                        className={cn(
+                            "flex-shrink-0 flex flex-col border border-border rounded-lg overflow-hidden bg-sidebar",
+                            showSessions
+                                ? "fixed inset-y-0 left-0 w-[85vw] max-w-[320px] z-50 lg:relative lg:w-64 xl:w-72"
+                                : "hidden lg:flex lg:w-64 xl:w-72",
+                        )}
+                    >
+                        <div className="p-2 sm:p-3 border-b border-border bg-sidebar-accent/50 flex-shrink-0">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-xs sm:text-sm font-semibold">
+                                    Model Selection
+                                </h3>
+                                {showSessions && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 lg:hidden"
+                                        onClick={() => setShowSessions(false)}
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="flex gap-1 flex-wrap mb-2">
                                 {quickPresets.map((preset) => (
                                     <button
                                         key={preset.name}
                                         onClick={() => applyQuickPreset(preset)}
-                                        className="text-[9px] px-2 py-1 rounded bg-sidebar-accent hover:bg-sidebar-accent/80 border border-border transition-all"
-                                        title={`Select: ${preset.models.map((m) => m.modelId).join(", ")}`}
+                                        className="text-[9px] px-1.5 py-0.5 rounded bg-sidebar-accent hover:bg-sidebar-accent/80 border border-border transition-all"
                                     >
                                         {preset.icon} {preset.name}
                                     </button>
@@ -346,13 +699,13 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                         </div>
 
                         <ScrollArea className="flex-1">
-                            <div className="p-3 space-y-3">
+                            <div className="p-2 sm:p-3 space-y-2 sm:space-y-3">
                                 {availableProviders.map((provider) => {
                                     const models =
                                         aiApi.getModelsByProvider(provider);
                                     return (
                                         <div key={provider}>
-                                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                                            <h4 className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                                                 {provider}
                                             </h4>
                                             <div className="space-y-1">
@@ -373,28 +726,28 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                                                 )
                                                             }
                                                             className={cn(
-                                                                "w-full text-left p-2 rounded-md border transition-all hover:bg-sidebar-accent/80",
+                                                                "w-full text-left p-1.5 sm:p-2 rounded-md border transition-all hover:bg-sidebar-accent/80",
                                                                 selected
                                                                     ? "border-primary bg-primary/10"
                                                                     : "border-border bg-sidebar-accent/30",
                                                             )}
                                                         >
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-1.5 sm:gap-2">
                                                                 {selected ? (
-                                                                    <CheckSquare className="w-4 h-4 text-primary flex-shrink-0" />
+                                                                    <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
                                                                 ) : (
-                                                                    <Square className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                                                    <Square className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
                                                                 )}
                                                                 <div className="flex-1 min-w-0">
-                                                                    <div className="text-[11px] font-medium truncate">
+                                                                    <div className="text-[10px] sm:text-[11px] font-medium truncate">
                                                                         {
                                                                             model.name
                                                                         }
                                                                     </div>
-                                                                    <div className="text-[9px] text-muted-foreground truncate">
+                                                                    <div className="text-[8px] sm:text-[9px] text-muted-foreground truncate">
                                                                         {model.description.substring(
                                                                             0,
-                                                                            40,
+                                                                            30,
                                                                         )}
                                                                         ...
                                                                     </div>
@@ -409,205 +762,336 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                 })}
                             </div>
                         </ScrollArea>
+
+                        {/* Sessions List */}
+                        <div className="border-t border-border flex-shrink-0">
+                            <div className="p-2 sm:p-3 border-b border-border bg-sidebar-accent/50">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-xs sm:text-sm font-semibold">
+                                        Sessions
+                                    </h3>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={createNewSession}
+                                        className="h-6 sm:h-7 text-[9px] sm:text-[10px] px-1.5 sm:px-2"
+                                        disabled={selectedModels.length === 0}
+                                    >
+                                        <Plus className="w-3 h-3 sm:mr-1" />
+                                        <span className="hidden sm:inline">
+                                            New
+                                        </span>
+                                    </Button>
+                                </div>
+                            </div>
+                            <ScrollArea className="h-32 sm:h-40">
+                                <div className="p-2 space-y-1">
+                                    {sessions.length === 0 ? (
+                                        <div className="text-[10px] text-muted-foreground text-center py-4">
+                                            No sessions yet
+                                        </div>
+                                    ) : (
+                                        sessions.map((session) => (
+                                            <div
+                                                key={session.id}
+                                                className={cn(
+                                                    "p-1.5 sm:p-2 rounded hover:bg-sidebar-accent cursor-pointer group flex items-center justify-between",
+                                                    currentSessionId ===
+                                                        session.id &&
+                                                        "bg-sidebar-accent border-l-2 border-primary",
+                                                )}
+                                                onClick={() =>
+                                                    loadSession(session.id)
+                                                }
+                                            >
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-[10px] sm:text-xs font-medium truncate">
+                                                        {session.title}
+                                                    </div>
+                                                    <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                                                        {session.models.length}{" "}
+                                                        models •{" "}
+                                                        {new Date(
+                                                            session.timestamp,
+                                                        ).toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-5 w-5 opacity-0 group-hover:opacity-100"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSessionToDelete(
+                                                            session.id,
+                                                        );
+                                                        setShowDeleteDialog(
+                                                            true,
+                                                        );
+                                                    }}
+                                                >
+                                                    <Trash2 className="w-3 h-3 text-destructive" />
+                                                </Button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </ScrollArea>
+                        </div>
                     </div>
 
-                    {/* Responses Panel */}
+                    {/* Main Chat Area */}
                     <div className="flex-1 flex flex-col min-w-0 min-h-0">
+                        {/* Conversation Area */}
+                        <ScrollArea className="flex-1 mb-3 sm:mb-4 min-h-0">
+                            {conversation.length === 0 ? (
+                                <div className="h-full flex items-center justify-center p-4">
+                                    <div className="text-center text-muted-foreground">
+                                        <Zap className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 opacity-50" />
+                                        <p className="text-xs sm:text-sm font-medium">
+                                            Agent Mode Ready
+                                        </p>
+                                        <p className="text-[10px] sm:text-xs mt-1">
+                                            {currentSessionId
+                                                ? "Start chatting with context preservation"
+                                                : "Select models and create a session to start"}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
+                                    {conversation.map((turn) => (
+                                        <div
+                                            key={turn.id}
+                                            className="space-y-3 sm:space-y-4"
+                                        >
+                                            {/* User Message */}
+                                            <div className="flex justify-end">
+                                                <div className="bg-primary/20 rounded-lg p-2 sm:p-3 max-w-[85%] sm:max-w-[80%]">
+                                                    <p className="text-[11px] sm:text-xs lg:text-sm text-foreground whitespace-pre-wrap break-words">
+                                                        {turn.userMessage}
+                                                    </p>
+                                                    <span className="text-[8px] sm:text-[9px] text-muted-foreground mt-1 block">
+                                                        {new Date(
+                                                            turn.timestamp,
+                                                        ).toLocaleTimeString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Model Responses */}
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-3">
+                                                {turn.responses.map(
+                                                    (response, idx) => (
+                                                        <Card
+                                                            key={`${response.provider}-${response.modelId}-${idx}`}
+                                                            className={cn(
+                                                                "flex flex-col border-2",
+                                                                getProviderColor(
+                                                                    response.provider,
+                                                                ),
+                                                            )}
+                                                        >
+                                                            <CardHeader className="pb-2 p-2 sm:p-3">
+                                                                <CardTitle className="text-[10px] sm:text-xs flex items-center justify-between">
+                                                                    <span className="truncate">
+                                                                        {
+                                                                            response.modelName
+                                                                        }
+                                                                    </span>
+                                                                    <Badge
+                                                                        variant="outline"
+                                                                        className={cn(
+                                                                            "text-[7px] sm:text-[8px] px-1 py-0 ml-1 flex-shrink-0",
+                                                                            getProviderBadgeColor(
+                                                                                response.provider,
+                                                                            ),
+                                                                        )}
+                                                                    >
+                                                                        {
+                                                                            response.provider
+                                                                        }
+                                                                    </Badge>
+                                                                </CardTitle>
+                                                            </CardHeader>
+                                                            <CardContent className="flex-1 pt-0 p-2 sm:p-3 flex flex-col min-h-0">
+                                                                <ScrollArea className="flex-1 -mx-2 px-2 sm:-mx-3 sm:px-3 min-h-[120px] sm:min-h-[150px]">
+                                                                    {response.error ? (
+                                                                        <div className="text-[10px] sm:text-xs text-destructive bg-destructive/10 p-2 rounded border border-destructive/30">
+                                                                            <p className="font-semibold mb-1">
+                                                                                Error:
+                                                                            </p>
+                                                                            <p>
+                                                                                {
+                                                                                    response.error
+                                                                                }
+                                                                            </p>
+                                                                        </div>
+                                                                    ) : response.isLoading &&
+                                                                      !response.content ? (
+                                                                        <div className="flex items-center gap-2 text-muted-foreground text-[10px] sm:text-xs">
+                                                                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                                                                            Waiting...
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="text-[10px] sm:text-xs leading-relaxed prose prose-sm max-w-none dark:prose-invert">
+                                                                            <MarkdownRenderer
+                                                                                content={
+                                                                                    response.content
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                </ScrollArea>
+                                                                {response.metadata &&
+                                                                    !response.isLoading && (
+                                                                        <div className="mt-2 pt-2 border-t border-border">
+                                                                            <div className="flex flex-wrap gap-1 sm:gap-1.5 text-[8px] sm:text-[9px] text-muted-foreground">
+                                                                                {response
+                                                                                    .metadata
+                                                                                    .duration && (
+                                                                                    <span>
+                                                                                        ⏱️{" "}
+                                                                                        {
+                                                                                            response
+                                                                                                .metadata
+                                                                                                .duration
+                                                                                        }
+                                                                                    </span>
+                                                                                )}
+                                                                                {response
+                                                                                    .metadata
+                                                                                    .tokens && (
+                                                                                    <span className="hidden sm:inline">
+                                                                                        📊{" "}
+                                                                                        {
+                                                                                            response
+                                                                                                .metadata
+                                                                                                .tokens
+                                                                                        }
+                                                                                    </span>
+                                                                                )}
+                                                                                {response
+                                                                                    .metadata
+                                                                                    .speed && (
+                                                                                    <span>
+                                                                                        ⚡{" "}
+                                                                                        {
+                                                                                            response
+                                                                                                .metadata
+                                                                                                .speed
+                                                                                        }
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                {response.isLoading &&
+                                                                    response.content && (
+                                                                        <div className="mt-1 flex items-center gap-1 text-[8px] sm:text-[9px] text-muted-foreground">
+                                                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                                                            Streaming...
+                                                                        </div>
+                                                                    )}
+                                                            </CardContent>
+                                                        </Card>
+                                                    ),
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div ref={conversationEndRef} />
+                                </div>
+                            )}
+                        </ScrollArea>
+
                         {/* Input Area */}
-                        <div className="mb-4 flex-shrink-0">
-                            <div className="flex gap-2 items-end">
+                        <div className="flex-shrink-0 border-t border-border pt-2 sm:pt-3">
+                            <div className="flex gap-1.5 sm:gap-2 items-end">
                                 <Textarea
                                     ref={textareaRef}
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
                                     placeholder={
-                                        selectedModels.length === 0
-                                            ? "Select models first..."
-                                            : `Ask ${selectedModels.length} model(s) anything...`
+                                        !currentSessionId
+                                            ? "Create session first..."
+                                            : selectedModels.length === 0
+                                              ? "Select models first..."
+                                              : `Continue conversation with ${selectedModels.length} models...`
                                     }
-                                    rows={2}
+                                    rows={1}
                                     disabled={
                                         isProcessing ||
                                         selectedModels.length === 0
                                     }
-                                    className="min-h-[60px] max-h-32 resize-none text-sm flex-1"
+                                    className="min-h-[36px] sm:min-h-[44px] max-h-24 sm:max-h-32 resize-none text-[11px] sm:text-xs lg:text-sm flex-1"
                                 />
                                 <Button
                                     size="icon"
-                                    className="h-[60px] w-[60px] flex-shrink-0"
-                                    onClick={handleSendToMultipleModels}
+                                    className="h-9 w-9 sm:h-11 sm:w-11 lg:h-12 lg:w-12 flex-shrink-0"
+                                    onClick={handleSendMessage}
                                     disabled={
                                         isProcessing ||
                                         !input.trim() ||
-                                        selectedModels.length === 0
+                                        selectedModels.length === 0 ||
+                                        !currentSessionId
                                     }
                                 >
                                     {isProcessing ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                                     ) : (
-                                        <Send className="w-5 h-5" />
+                                        <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                                     )}
                                 </Button>
                             </div>
-                            {responses.length > 0 && (
-                                <div className="flex justify-between items-center mt-2">
-                                    <span className="text-xs text-muted-foreground">
-                                        {
-                                            responses.filter(
-                                                (r) => !r.isLoading,
-                                            ).length
-                                        }{" "}
-                                        of {responses.length} responses
-                                        completed
+                            {conversation.length > 0 && (
+                                <div className="flex justify-between items-center mt-2 text-[9px] sm:text-[10px] text-muted-foreground">
+                                    <span>
+                                        {conversation.length} turns • Context
+                                        preserved
                                     </span>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={clearResponses}
-                                        className="text-xs h-7"
-                                    >
-                                        <X className="w-3 h-3 mr-1" />
-                                        Clear
-                                    </Button>
+                                    {isProcessing && (
+                                        <span className="flex items-center gap-1">
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                            Processing...
+                                        </span>
+                                    )}
                                 </div>
                             )}
                         </div>
-
-                        {/* Responses Grid */}
-                        <ScrollArea className="flex-1 min-h-0">
-                            {responses.length === 0 ? (
-                                <div className="h-full flex items-center justify-center">
-                                    <div className="text-center text-muted-foreground">
-                                        <Zap className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                                        <p className="text-sm font-medium">
-                                            Agent Mode Ready
-                                        </p>
-                                        <p className="text-xs mt-1">
-                                            Select models and send a message to
-                                            compare responses
-                                        </p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 pb-4">
-                                    {responses.map((response, index) => (
-                                        <Card
-                                            key={`${response.provider}-${response.modelId}-${index}`}
-                                            className={cn(
-                                                "flex flex-col border-2",
-                                                getProviderColor(
-                                                    response.provider,
-                                                ),
-                                            )}
-                                        >
-                                            <CardHeader className="pb-3">
-                                                <CardTitle className="text-sm flex items-center justify-between">
-                                                    <span className="truncate">
-                                                        {response.modelName}
-                                                    </span>
-                                                    <Badge
-                                                        variant="outline"
-                                                        className={cn(
-                                                            "text-[8px] px-1.5 py-0 ml-2 flex-shrink-0",
-                                                            getProviderBadgeColor(
-                                                                response.provider,
-                                                            ),
-                                                        )}
-                                                    >
-                                                        {response.provider}
-                                                    </Badge>
-                                                </CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="flex-1 pt-0 flex flex-col min-h-0">
-                                                <ScrollArea className="flex-1 -mx-6 px-6 min-h-[200px]">
-                                                    {response.error ? (
-                                                        <div className="text-xs text-destructive bg-destructive/10 p-3 rounded border border-destructive/30">
-                                                            <p className="font-semibold mb-1">
-                                                                Error:
-                                                            </p>
-                                                            <p>
-                                                                {response.error}
-                                                            </p>
-                                                        </div>
-                                                    ) : response.isLoading &&
-                                                      !response.content ? (
-                                                        <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                                            Waiting for
-                                                            response...
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-xs leading-relaxed prose prose-sm max-w-none dark:prose-invert">
-                                                            <MarkdownRenderer
-                                                                content={
-                                                                    response.content
-                                                                }
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </ScrollArea>
-
-                                                {response.metadata &&
-                                                    !response.isLoading && (
-                                                        <div className="mt-3 pt-3 border-t border-border">
-                                                            <div className="flex flex-wrap gap-2 text-[9px] text-muted-foreground">
-                                                                {response
-                                                                    .metadata
-                                                                    .duration && (
-                                                                    <span className="whitespace-nowrap">
-                                                                        ⏱️{" "}
-                                                                        {
-                                                                            response
-                                                                                .metadata
-                                                                                .duration
-                                                                        }
-                                                                    </span>
-                                                                )}
-                                                                {response
-                                                                    .metadata
-                                                                    .tokens && (
-                                                                    <span className="whitespace-nowrap">
-                                                                        📊{" "}
-                                                                        {
-                                                                            response
-                                                                                .metadata
-                                                                                .tokens
-                                                                        }
-                                                                    </span>
-                                                                )}
-                                                                {response
-                                                                    .metadata
-                                                                    .speed && (
-                                                                    <span className="whitespace-nowrap">
-                                                                        ⚡{" "}
-                                                                        {
-                                                                            response
-                                                                                .metadata
-                                                                                .speed
-                                                                        }
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                {response.isLoading &&
-                                                    response.content && (
-                                                        <div className="mt-2 flex items-center gap-2 text-[9px] text-muted-foreground">
-                                                            <Loader2 className="w-3 h-3 animate-spin" />
-                                                            Streaming...
-                                                        </div>
-                                                    )}
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-                            )}
-                        </ScrollArea>
                     </div>
                 </div>
             </DialogContent>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+            >
+                <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Session?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete this agent session and
+                            all its conversation history. This action cannot be
+                            undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() =>
+                                sessionToDelete &&
+                                deleteSession(sessionToDelete)
+                            }
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Dialog>
     );
 };

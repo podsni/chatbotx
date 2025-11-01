@@ -191,12 +191,23 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
     };
 
     const loadSession = async (sessionId: string) => {
+        console.log('📂 Loading session:', sessionId);
         try {
             const session = await chatDB.getAgentSession(sessionId);
             if (!session) return;
 
             const responses =
                 await chatDB.getAgentResponsesBySession(sessionId);
+
+            console.log('📊 Loaded responses:', {
+                sessionId,
+                count: responses.length,
+                responses: responses.map(r => ({
+                    userMsg: r.userMessage.substring(0, 30),
+                    responsesCount: r.responses.length,
+                    hasContent: r.responses.every(rr => rr.content && rr.content.length > 0)
+                }))
+            });
 
             setCurrentSessionId(sessionId);
             setSessionTitle(session.title);
@@ -226,6 +237,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                 }),
             );
 
+            console.log('✓ Setting conversation with', conversationHistory.length, 'turns');
             setConversation(conversationHistory);
             setShowSessions(false);
             toast({
@@ -246,7 +258,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
         if (!currentSessionId || !newTitle.trim()) return;
 
         try {
-            const session = await chatDB.getAgentSession(currentSessionId);
+            const session = await chatDB.getAgentSession(sessionId);
             if (session) {
                 session.title = newTitle.trim();
                 await chatDB.updateAgentSession(session);
@@ -385,9 +397,35 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
 
     const handleSendMessage = async () => {
         if (!input.trim() || selectedModels.length === 0) return;
-        if (!currentSessionId) {
-            await createNewSession();
-            if (!currentSessionId) return;
+        
+        // Ensure we have a session
+        let sessionId = currentSessionId;
+        if (!sessionId) {
+            console.log('⚡ No session, creating new one...');
+            const timestamp = Date.now();
+            const newSession: AgentSession = {
+                id: `agent-${timestamp}`,
+                title: `Agent Chat ${new Date(timestamp).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`,
+                timestamp,
+                models: selectedModels,
+            };
+            
+            try {
+                await chatDB.createAgentSession(newSession);
+                sessionId = newSession.id;
+                setCurrentSessionId(sessionId);
+                setSessionTitle(newSession.title);
+                await loadSessions();
+                console.log('✓ Session created:', sessionId);
+            } catch (error) {
+                console.error("Error creating session:", error);
+                toast({
+                    title: "Error",
+                    description: "Failed to create session",
+                    variant: "destructive",
+                });
+                return;
+            }
         }
 
         setIsProcessing(true);
@@ -395,6 +433,12 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
         setInput("");
 
         const turnId = `turn-${Date.now()}`;
+        
+        console.log('🚀 Starting message send:', {
+            sessionId,
+            models: selectedModels.length,
+            hasSession: !!sessionId
+        });
         const contextMessages = buildContextMessages(userMessage);
 
         // Initialize empty responses
@@ -407,6 +451,9 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                 isLoading: true,
             }),
         );
+        
+        // Collect final responses for database save
+        const finalResponsesMap = new Map<number, ModelResponse>();
 
         const newTurn: ConversationTurn = {
             id: turnId,
@@ -469,6 +516,22 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                             tokens: `${tokenCount} tokens`,
                             speed: `${tokensPerSecond} tok/s`,
                         };
+
+                        // Store final response in Map
+                        finalResponsesMap.set(index, {
+                            provider: model.provider,
+                            modelId: model.modelId,
+                            modelName: model.modelName,
+                            content: content,
+                            isLoading: false,
+                            metadata: metadata,
+                        });
+                        
+                        console.log(`✓ Collected response ${index + 1}/${selectedModels.length}:`, {
+                            provider: model.provider,
+                            contentLength: content.length,
+                            model: model.modelName
+                        });
 
                         setConversation((prev) =>
                             prev.map((turn) =>
@@ -540,16 +603,20 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
 
         await Promise.all(promises);
 
-        // Save to database
+        // Save to database using collected final responses
         try {
-            const turnToSave = conversation.find((t) => t.id === turnId);
-            if (turnToSave && currentSessionId) {
+            if (sessionId && finalResponsesMap.size > 0) {
+                // Wait a bit to ensure all state updates are done
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                const finalResponses = Array.from(finalResponsesMap.values());
+                
                 const agentResponse: AgentResponse = {
                     id: turnId,
-                    sessionId: currentSessionId,
+                    sessionId: sessionId,
                     userMessage,
                     timestamp: Date.now(),
-                    responses: turnToSave.responses.map((r) => ({
+                    responses: finalResponses.map((r) => ({
                         provider: r.provider,
                         modelId: r.modelId,
                         modelName: r.modelName,
@@ -559,18 +626,30 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                     })),
                 };
 
+                console.log('💾 Saving agent response:', {
+                    sessionId: sessionId,
+                    turnId,
+                    responses: finalResponses.length,
+                    hasContent: finalResponses.every(r => r.content.length > 0)
+                });
+
                 await chatDB.addAgentResponse(agentResponse);
+                
+                console.log('✓ Agent response saved successfully');
 
                 // Update session lastMessage
-                const session = await chatDB.getAgentSession(currentSessionId);
+                const session = await chatDB.getAgentSession(sessionId);
                 if (session) {
                     session.lastMessage = userMessage.substring(0, 50);
                     session.timestamp = Date.now();
                     await chatDB.updateAgentSession(session);
+                    console.log('✓ Session updated');
                 }
+            } else {
+                console.warn('⚠️ No session or responses to save');
             }
         } catch (error) {
-            console.error("Error saving to database:", error);
+            console.error("❌ Error saving to database:", error);
         }
 
         setIsProcessing(false);
@@ -645,6 +724,30 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                     Sessions
                                 </span>
                             </Button>
+                            {process.env.NODE_ENV === 'development' && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                        console.log('=== AGENT DB DEBUG ===');
+                                        const allSessions = await chatDB.getAllAgentSessions();
+                                        console.log('Total sessions:', allSessions.length);
+                                        for (const s of allSessions) {
+                                            const resp = await chatDB.getAgentResponsesBySession(s.id);
+                                            console.log(`Session: ${s.title}`, {
+                                                id: s.id,
+                                                models: s.models.length,
+                                                responses: resp.length,
+                                                data: resp
+                                            });
+                                        }
+                                    }}
+                                    className="h-7 sm:h-8 text-[10px] sm:text-xs"
+                                    title="Debug DB"
+                                >
+                                    🐛
+                                </Button>
+                            )}
                         </div>
                     </div>
                     <DialogDescription className="text-[10px] sm:text-xs">

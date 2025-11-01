@@ -312,67 +312,92 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
     return (
         <div className="space-y-6">
             <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="debaters">Debaters</TabsTrigger>
-                    <TabsTrigger value="rounds">Rounds</TabsTrigger>
-                    <TabsTrigger value="tree">Tree</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4 h-auto">
+                    <TabsTrigger
+                        value="overview"
+                        className="text-xs sm:text-sm py-2"
+                    >
+                        <span className="hidden sm:inline">Overview</span>
+                        <span className="sm:hidden">Info</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="debaters"
+                        className="text-xs sm:text-sm py-2"
+                    >
+                        <span className="hidden sm:inline">Debaters</span>
+                        <span className="sm:hidden">Rank</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="rounds"
+                        className="text-xs sm:text-sm py-2"
+                    >
+                        Rounds
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="tree"
+                        className="text-xs sm:text-sm py-2"
+                    >
+                        Tree
+                    </TabsTrigger>
                 </TabsList>
 
                 {/* Overview Tab */}
-                <TabsContent value="overview" className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <TabsContent
+                    value="overview"
+                    className="space-y-3 sm:space-y-4 mt-3 sm:mt-4"
+                >
+                    <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">
-                                    Total Ronde
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-6">
+                                <CardTitle className="text-xs sm:text-sm font-medium">
+                                    Ronde
                                 </CardTitle>
-                                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">
+                            <CardContent className="p-3 sm:p-6 pt-0">
+                                <div className="text-xl sm:text-2xl font-bold">
                                     {overallStats.totalRounds}
                                 </div>
                             </CardContent>
                         </Card>
 
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">
-                                    Total Argumen
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-6">
+                                <CardTitle className="text-xs sm:text-sm font-medium">
+                                    Argumen
                                 </CardTitle>
-                                <Activity className="h-4 w-4 text-muted-foreground" />
+                                <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">
+                            <CardContent className="p-3 sm:p-6 pt-0">
+                                <div className="text-xl sm:text-2xl font-bold">
                                     {overallStats.totalArguments}
                                 </div>
                             </CardContent>
                         </Card>
 
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">
-                                    Rata-rata Kata
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-6">
+                                <CardTitle className="text-xs sm:text-sm font-medium">
+                                    Avg Kata
                                 </CardTitle>
-                                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                                <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">
+                            <CardContent className="p-3 sm:p-6 pt-0">
+                                <div className="text-xl sm:text-2xl font-bold">
                                     {overallStats.averageWordsPerArgument}
                                 </div>
                             </CardContent>
                         </Card>
 
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">
-                                    Total Voting
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-6">
+                                <CardTitle className="text-xs sm:text-sm font-medium">
+                                    Voting
                                 </CardTitle>
-                                <Target className="h-4 w-4 text-muted-foreground" />
+                                <Target className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">
+                            <CardContent className="p-3 sm:p-6 pt-0">
+                                <div className="text-xl sm:text-2xl font-bold">
                                     {overallStats.totalVotes}
                                 </div>
                             </CardContent>
@@ -381,13 +406,13 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
 
                     {/* Consensus Status */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Target className="h-5 w-5" />
+                        <CardHeader className="p-3 sm:p-6">
+                            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                                <Target className="h-4 w-4 sm:h-5 sm:w-5" />
                                 Status Konsensus
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-3 sm:p-6 pt-0">
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium">
@@ -426,10 +451,12 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
 
                     {/* Session Info */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Informasi Sesi</CardTitle>
+                        <CardHeader className="p-3 sm:p-6">
+                            <CardTitle className="text-sm sm:text-base">
+                                Informasi Sesi
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-2">
+                        <CardContent className="space-y-2 p-3 sm:p-6 pt-0">
                             <div className="flex justify-between">
                                 <span className="text-sm text-muted-foreground">
                                     Mode Debat
@@ -480,20 +507,23 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                 </TabsContent>
 
                 {/* Debaters Tab */}
-                <TabsContent value="debaters" className="space-y-4">
+                <TabsContent
+                    value="debaters"
+                    className="space-y-3 sm:space-y-4 mt-3 sm:mt-4"
+                >
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Award className="h-5 w-5" />
+                        <CardHeader className="p-3 sm:p-6">
+                            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                                <Award className="h-4 w-4 sm:h-5 sm:w-5" />
                                 Peringkat Debater
                             </CardTitle>
-                            <CardDescription>
+                            <CardDescription className="text-xs sm:text-sm">
                                 Berdasarkan voting, konsistensi, dan pengaruh
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <ScrollArea className="h-[400px]">
-                                <div className="space-y-4">
+                        <CardContent className="p-3 sm:p-6 pt-0">
+                            <ScrollArea className="h-[400px] sm:h-[500px]">
+                                <div className="space-y-2 sm:space-y-4">
                                     {rankedDebaters.map((stats, index) => (
                                         <Card
                                             key={stats.debater.id}
@@ -503,11 +533,11 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                                                     "ring-2 ring-yellow-500 bg-yellow-500/5",
                                             )}
                                         >
-                                            <CardContent className="pt-6">
-                                                <div className="space-y-4">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="text-3xl">
+                                            <CardContent className="p-3 sm:p-6">
+                                                <div className="space-y-3 sm:space-y-4">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                                                            <div className="text-2xl sm:text-3xl flex-shrink-0">
                                                                 {index === 0
                                                                     ? "🏆"
                                                                     : index ===
@@ -518,16 +548,16 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                                                                         ? "🥉"
                                                                         : `#${index + 1}`}
                                                             </div>
-                                                            <div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-xl">
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                                                    <span className="text-base sm:text-lg flex-shrink-0">
                                                                         {
                                                                             stats
                                                                                 .debater
                                                                                 .emoji
                                                                         }
                                                                     </span>
-                                                                    <span className="font-semibold">
+                                                                    <span className="font-semibold text-sm sm:text-base truncate">
                                                                         {
                                                                             stats
                                                                                 .debater
@@ -535,7 +565,7 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                                                                         }
                                                                     </span>
                                                                 </div>
-                                                                <p className="text-xs text-muted-foreground capitalize">
+                                                                <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">
                                                                     {
                                                                         stats
                                                                             .debater
@@ -552,42 +582,42 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                                                         </div>
                                                     </div>
 
-                                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                                    <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                                                         <div>
-                                                            <div className="text-muted-foreground">
+                                                            <div className="text-muted-foreground text-[10px] sm:text-xs">
                                                                 Argumen
                                                             </div>
-                                                            <div className="font-medium">
+                                                            <div className="font-medium text-xs sm:text-sm">
                                                                 {
                                                                     stats.argumentCount
                                                                 }
                                                             </div>
                                                         </div>
                                                         <div>
-                                                            <div className="text-muted-foreground">
-                                                                Vote Diterima
+                                                            <div className="text-muted-foreground text-[10px] sm:text-xs">
+                                                                Vote
                                                             </div>
-                                                            <div className="font-medium">
+                                                            <div className="font-medium text-xs sm:text-sm">
                                                                 {
                                                                     stats.votesReceived
                                                                 }
                                                             </div>
                                                         </div>
                                                         <div>
-                                                            <div className="text-muted-foreground">
+                                                            <div className="text-muted-foreground text-[10px] sm:text-xs">
                                                                 Pengaruh
                                                             </div>
-                                                            <div className="font-medium">
+                                                            <div className="font-medium text-xs sm:text-sm">
                                                                 {
                                                                     stats.influence
                                                                 }
                                                             </div>
                                                         </div>
                                                         <div>
-                                                            <div className="text-muted-foreground">
-                                                                Skor Ranking
+                                                            <div className="text-muted-foreground text-[10px] sm:text-xs">
+                                                                Ranking
                                                             </div>
-                                                            <div className="font-medium">
+                                                            <div className="font-medium text-xs sm:text-sm">
                                                                 {
                                                                     stats.rankingsSum
                                                                 }
@@ -595,7 +625,7 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                                                         </div>
                                                     </div>
 
-                                                    <div className="space-y-2">
+                                                    <div className="space-y-1.5 sm:space-y-2">
                                                         <div>
                                                             <div className="flex justify-between text-xs mb-1">
                                                                 <span className="text-muted-foreground">
@@ -649,17 +679,20 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                 </TabsContent>
 
                 {/* Rounds Tab */}
-                <TabsContent value="rounds" className="space-y-4">
+                <TabsContent
+                    value="rounds"
+                    className="space-y-3 sm:space-y-4 mt-3 sm:mt-4"
+                >
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Activity className="h-5 w-5" />
+                        <CardHeader className="p-3 sm:p-6">
+                            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                                <Activity className="h-4 w-4 sm:h-5 sm:w-5" />
                                 Analisis Per Ronde
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <ScrollArea className="h-[500px]">
-                                <div className="space-y-4">
+                        <CardContent className="p-3 sm:p-6 pt-0">
+                            <ScrollArea className="h-[400px] sm:h-[500px]">
+                                <div className="space-y-2 sm:space-y-4 pr-2 sm:pr-4">
                                     {roundAnalytics.map((analytics) => (
                                         <Card
                                             key={analytics.round}
@@ -675,47 +708,47 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                                                           : "#6b7280",
                                             }}
                                         >
-                                            <CardHeader>
-                                                <div className="flex items-center justify-between">
-                                                    <CardTitle className="text-base">
+                                            <CardHeader className="p-3 sm:p-6">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <CardTitle className="text-sm sm:text-base">
                                                         Ronde{" "}
                                                         {analytics.round + 1}
                                                     </CardTitle>
                                                     <Badge
                                                         variant="outline"
-                                                        className="capitalize"
+                                                        className="capitalize text-[10px] sm:text-xs flex-shrink-0"
                                                     >
                                                         {analytics.type}
                                                     </Badge>
                                                 </div>
                                             </CardHeader>
-                                            <CardContent className="space-y-3">
-                                                <div className="grid grid-cols-3 gap-2 text-sm">
+                                            <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-6 pt-0">
+                                                <div className="grid grid-cols-3 gap-2 text-xs sm:text-sm">
                                                     <div>
-                                                        <div className="text-muted-foreground text-xs">
+                                                        <div className="text-muted-foreground text-[10px] sm:text-xs">
                                                             Argumen
                                                         </div>
-                                                        <div className="font-medium">
+                                                        <div className="font-medium text-xs sm:text-sm">
                                                             {
                                                                 analytics.totalArguments
                                                             }
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <div className="text-muted-foreground text-xs">
-                                                            Rata-rata Panjang
+                                                        <div className="text-muted-foreground text-[10px] sm:text-xs">
+                                                            Avg
                                                         </div>
-                                                        <div className="font-medium">
+                                                        <div className="font-medium text-xs sm:text-sm">
                                                             {Math.round(
                                                                 analytics.averageLength,
                                                             )}
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <div className="text-muted-foreground text-xs">
+                                                        <div className="text-muted-foreground text-[10px] sm:text-xs">
                                                             Tone
                                                         </div>
-                                                        <div className="font-medium capitalize">
+                                                        <div className="font-medium capitalize text-xs sm:text-sm">
                                                             {analytics.emotionalTone ===
                                                             "positive"
                                                                 ? "➕"
@@ -760,24 +793,27 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                 </TabsContent>
 
                 {/* Tree Tab */}
-                <TabsContent value="tree" className="space-y-4">
+                <TabsContent
+                    value="tree"
+                    className="space-y-3 sm:space-y-4 mt-3 sm:mt-4"
+                >
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <GitBranch className="h-5 w-5" />
+                        <CardHeader className="p-3 sm:p-6">
+                            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                                <GitBranch className="h-4 w-4 sm:h-5 sm:w-5" />
                                 Pohon Debat
                             </CardTitle>
-                            <CardDescription>
+                            <CardDescription className="text-xs sm:text-sm">
                                 Visualisasi alur debat dari awal hingga akhir
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <ScrollArea className="h-[600px]">
-                                <div className="relative pl-8">
+                        <CardContent className="p-3 sm:p-6 pt-0">
+                            <ScrollArea className="h-[500px] sm:h-[600px]">
+                                <div className="relative pl-6 sm:pl-8">
                                     {/* Vertical Line */}
-                                    <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
+                                    <div className="absolute left-3 sm:left-4 top-0 bottom-0 w-0.5 bg-border" />
 
-                                    <div className="space-y-8">
+                                    <div className="space-y-6 sm:space-y-8">
                                         {debateTree.map((node, index) => (
                                             <div
                                                 key={node.id}
@@ -786,7 +822,7 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                                                 {/* Node Circle */}
                                                 <div
                                                     className={cn(
-                                                        "absolute -left-[26px] w-5 h-5 rounded-full border-4 border-background z-10",
+                                                        "absolute -left-[18px] sm:-left-[26px] w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 sm:border-4 border-background z-10",
                                                         node.consensus
                                                             ? "bg-green-500"
                                                             : "bg-primary",
@@ -795,28 +831,28 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
 
                                                 {/* Node Content */}
                                                 <Card>
-                                                    <CardHeader>
-                                                        <div className="flex items-center justify-between">
-                                                            <CardTitle className="text-sm">
+                                                    <CardHeader className="p-3 sm:p-6">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <CardTitle className="text-xs sm:text-sm">
                                                                 Ronde{" "}
                                                                 {index + 1}
                                                             </CardTitle>
                                                             <div className="flex items-center gap-2">
                                                                 <Badge
                                                                     variant="outline"
-                                                                    className="capitalize text-xs"
+                                                                    className="capitalize text-[10px] sm:text-xs"
                                                                 >
                                                                     {node.type}
                                                                 </Badge>
                                                                 {node.consensus && (
-                                                                    <Badge className="bg-green-500 text-xs">
+                                                                    <Badge className="bg-green-500 text-[10px] sm:text-xs">
                                                                         Konsensus
                                                                     </Badge>
                                                                 )}
                                                             </div>
                                                         </div>
                                                     </CardHeader>
-                                                    <CardContent className="space-y-3">
+                                                    <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-6 pt-0">
                                                         {/* Arguments in this round */}
                                                         {node.arguments.map(
                                                             (
@@ -825,30 +861,30 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                                                             ) => (
                                                                 <div
                                                                     key={argIdx}
-                                                                    className="p-3 rounded-lg bg-muted/50 border space-y-2"
+                                                                    className="p-2 sm:p-3 rounded-lg bg-muted/50 border space-y-1.5 sm:space-y-2"
                                                                 >
-                                                                    <div className="flex items-start gap-2">
-                                                                        <span className="text-lg">
+                                                                    <div className="flex items-start gap-1.5 sm:gap-2">
+                                                                        <span className="text-base sm:text-lg flex-shrink-0">
                                                                             {
                                                                                 arg.emoji
                                                                             }
                                                                         </span>
                                                                         <div className="flex-1 min-w-0">
-                                                                            <div className="font-medium text-sm">
+                                                                            <div className="font-medium text-xs sm:text-sm">
                                                                                 {
                                                                                     arg.debater
                                                                                 }
                                                                             </div>
-                                                                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                                                            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 line-clamp-2">
                                                                                 {
                                                                                     arg.preview
                                                                                 }
                                                                             </p>
                                                                             {arg.beliefUpdate !==
                                                                                 undefined && (
-                                                                                <div className="mt-2">
-                                                                                    <div className="flex items-center gap-2 text-xs">
-                                                                                        <TrendingUp className="h-3 w-3" />
+                                                                                <div className="mt-1.5 sm:mt-2">
+                                                                                    <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs">
+                                                                                        <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                                                                                         <span className="text-muted-foreground">
                                                                                             Keyakinan:
                                                                                         </span>
@@ -871,8 +907,8 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
 
                                                         {/* Vote count */}
                                                         {node.votes > 0 && (
-                                                            <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
-                                                                <Target className="h-3 w-3" />
+                                                            <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground pt-2 border-t">
+                                                                <Target className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                                                                 {node.votes}{" "}
                                                                 vote dilakukan
                                                             </div>
@@ -885,16 +921,16 @@ export const DebateAnalytics = ({ session }: DebateAnalyticsProps) => {
                                         {/* End Node */}
                                         {session.winner && (
                                             <div className="relative">
-                                                <div className="absolute -left-[26px] w-5 h-5 rounded-full border-4 border-background bg-yellow-500 z-10" />
+                                                <div className="absolute -left-[18px] sm:-left-[26px] w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 sm:border-4 border-background bg-yellow-500 z-10" />
                                                 <Card className="bg-gradient-to-r from-yellow-500/10 to-transparent border-yellow-500/20">
-                                                    <CardContent className="pt-6">
-                                                        <div className="flex items-center gap-3">
-                                                            <Award className="h-6 w-6 text-yellow-500" />
-                                                            <div>
-                                                                <div className="font-semibold">
+                                                    <CardContent className="p-3 sm:p-6">
+                                                        <div className="flex items-center gap-2 sm:gap-3">
+                                                            <Award className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500 flex-shrink-0" />
+                                                            <div className="min-w-0">
+                                                                <div className="font-semibold text-sm sm:text-base">
                                                                     Pemenang
                                                                 </div>
-                                                                <div className="text-sm text-muted-foreground">
+                                                                <div className="text-xs sm:text-sm text-muted-foreground truncate">
                                                                     {
                                                                         session.debaters.find(
                                                                             (

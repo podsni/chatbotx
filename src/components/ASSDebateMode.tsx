@@ -360,23 +360,47 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
             return;
         }
 
-        setCurrentSession({
+        // Restore full session state
+        const updatedSession = {
             ...session,
-            status: "in-progress",
+            status: "in-progress" as const,
             updatedAt: Date.now(),
-        });
+        };
+
+        setCurrentSession(updatedSession);
         setQuestion(session.question);
         setDebateMode(session.mode);
         setVotingSystem(session.votingSystem);
+        setMaxIterations(session.maxIterations);
+        setConsensusThreshold(session.consensusThreshold);
+        setSelectedPersonalities(
+            session.debaters.map((d) => d.personalityType),
+        );
+
+        // Restore character models
+        const restoredModels: Record<
+            PersonalityType,
+            { provider: Provider; modelId: string }
+        > = {} as any;
+        session.debaters.forEach((debater) => {
+            restoredModels[debater.personalityType] = {
+                provider: debater.provider,
+                modelId: debater.modelId,
+            };
+        });
+        setCharacterModels(restoredModels);
+
         setIsDebating(true);
         setShowSessionManager(false);
         setActiveTab("debate");
 
-        // Continue the debate from where it left off
-        await runDebate({
-            ...session,
-            status: "in-progress",
+        toast({
+            title: "Melanjutkan Debat",
+            description: `Melanjutkan dari ronde ${session.rounds.length}`,
         });
+
+        // Continue the debate from where it left off
+        await runDebate(updatedSession);
     };
 
     const exportSessions = (sessionIds: string[]) => {
@@ -519,7 +543,10 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
         const maxRounds =
             session.mode === "classic" ? 3 : session.maxIterations;
 
-        for (let round = 0; round <= maxRounds; round++) {
+        // Start from last round if continuing
+        const startRound = session.rounds.length;
+
+        for (let round = startRound; round <= maxRounds; round++) {
             if (stopDebateRef.current) {
                 toast({
                     title: "Debat Dihentikan",
@@ -652,10 +679,12 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
     };
 
     const runTeamDebate = async (session: DebateSession) => {
-        // Team debate: alternate between teams
         const maxRounds = session.maxIterations;
 
-        for (let round = 0; round <= maxRounds; round++) {
+        // Start from last round if continuing
+        const startRound = session.rounds.length;
+
+        for (let round = startRound; round <= maxRounds; round++) {
             const debateRound: DebateRound = {
                 round,
                 type: round === 0 ? "opening" : "argument",
@@ -2221,14 +2250,14 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                 open={showSessionManager}
                 onOpenChange={setShowSessionManager}
             >
-                <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-                    <DialogHeader className="p-6 pb-0">
-                        <DialogTitle className="flex items-center gap-2">
-                            <FolderOpen className="h-5 w-5" />
+                <DialogContent className="max-w-4xl max-h-[90vh] p-0 w-[95vw] sm:w-full">
+                    <DialogHeader className="p-4 sm:p-6 pb-0">
+                        <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                            <FolderOpen className="h-4 w-4 sm:h-5 sm:w-5" />
                             Manajemen Sesi Debat
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="p-6 pt-4">
+                    <div className="p-4 sm:p-6 pt-4">
                         <DebateSessionManager
                             sessions={savedSessions}
                             currentSession={currentSession}

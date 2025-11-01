@@ -129,9 +129,7 @@ export const DebateSessionManager = ({
 
     // Sort sessions by updated date (newest first)
     const sortedSessions = useMemo(() => {
-        return [...filteredSessions].sort(
-            (a, b) => b.updatedAt - a.updatedAt,
-        );
+        return [...filteredSessions].sort((a, b) => b.updatedAt - a.updatedAt);
     }, [filteredSessions]);
 
     const handleSaveCurrentSession = () => {
@@ -297,65 +295,91 @@ export const DebateSessionManager = ({
     return (
         <div className="space-y-4">
             {/* Toolbar */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:gap-4">
                 {/* Search and Filters */}
-                <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="relative flex-1">
+                <div className="flex flex-col gap-2">
+                    <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Cari sesi debat..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9"
+                            className="pl-9 h-10 text-sm"
                         />
                     </div>
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
-                        <SelectTrigger className="w-full sm:w-[150px]">
-                            <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Status</SelectItem>
-                            <SelectItem value="completed">Selesai</SelectItem>
-                            <SelectItem value="in-progress">Berjalan</SelectItem>
-                            <SelectItem value="paused">Dijeda</SelectItem>
-                            <SelectItem value="stopped">Dihentikan</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select value={filterMode} onValueChange={setFilterMode}>
-                        <SelectTrigger className="w-full sm:w-[150px]">
-                            <SelectValue placeholder="Mode" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Mode</SelectItem>
-                            <SelectItem value="voting">Voting</SelectItem>
-                            <SelectItem value="classic">Classic</SelectItem>
-                            <SelectItem value="team">Team</SelectItem>
-                            <SelectItem value="tournament">Tournament</SelectItem>
-                            <SelectItem value="panel">Panel</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                        <Select
+                            value={filterStatus}
+                            onValueChange={setFilterStatus}
+                        >
+                            <SelectTrigger className="flex-1 h-10 text-sm">
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua</SelectItem>
+                                <SelectItem value="completed">
+                                    Selesai
+                                </SelectItem>
+                                <SelectItem value="in-progress">
+                                    Berjalan
+                                </SelectItem>
+                                <SelectItem value="paused">Dijeda</SelectItem>
+                                <SelectItem value="stopped">
+                                    Dihentikan
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select
+                            value={filterMode}
+                            onValueChange={setFilterMode}
+                        >
+                            <SelectTrigger className="flex-1 h-10 text-sm">
+                                <SelectValue placeholder="Mode" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua</SelectItem>
+                                <SelectItem value="voting">Voting</SelectItem>
+                                <SelectItem value="classic">Classic</SelectItem>
+                                <SelectItem value="team">Team</SelectItem>
+                                <SelectItem value="tournament">
+                                    Tournament
+                                </SelectItem>
+                                <SelectItem value="panel">Panel</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                         onClick={() => setShowSaveDialog(true)}
                         disabled={!currentSession}
                         size="sm"
+                        className="w-full sm:w-auto h-10"
                     >
                         <Save className="h-4 w-4 mr-2" />
-                        Simpan Sesi Saat Ini
+                        <span className="hidden sm:inline">Simpan Sesi</span>
+                        <span className="sm:hidden">Simpan</span>
                     </Button>
                     <Button
                         onClick={handleExportSelected}
                         disabled={selectedSessions.size === 0}
                         variant="outline"
                         size="sm"
+                        className="w-full sm:w-auto h-10"
                     >
                         <Download className="h-4 w-4 mr-2" />
-                        Ekspor ({selectedSessions.size})
+                        Ekspor{" "}
+                        {selectedSessions.size > 0 &&
+                            `(${selectedSessions.size})`}
                     </Button>
-                    <Button onClick={handleImport} variant="outline" size="sm">
+                    <Button
+                        onClick={handleImport}
+                        variant="outline"
+                        size="sm"
+                        className="w-full sm:w-auto h-10"
+                    >
                         <Upload className="h-4 w-4 mr-2" />
                         Impor
                     </Button>
@@ -364,8 +388,9 @@ export const DebateSessionManager = ({
                             onClick={deselectAll}
                             variant="ghost"
                             size="sm"
+                            className="w-full sm:w-auto h-10"
                         >
-                            Batal Pilih Semua
+                            Batal Pilih
                         </Button>
                     ) : (
                         <Button
@@ -373,6 +398,7 @@ export const DebateSessionManager = ({
                             variant="ghost"
                             size="sm"
                             disabled={sortedSessions.length === 0}
+                            className="w-full sm:w-auto h-10"
                         >
                             Pilih Semua
                         </Button>
@@ -381,21 +407,23 @@ export const DebateSessionManager = ({
             </div>
 
             {/* Sessions List */}
-            <ScrollArea className="h-[600px]">
+            <ScrollArea className="h-[500px] sm:h-[600px]">
                 {sortedSessions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">
+                    <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center px-4">
+                        <FolderOpen className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
+                        <h3 className="text-base sm:text-lg font-semibold mb-2">
                             Tidak Ada Sesi
                         </h3>
-                        <p className="text-sm text-muted-foreground">
-                            {searchQuery || filterStatus !== "all" || filterMode !== "all"
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                            {searchQuery ||
+                            filterStatus !== "all" ||
+                            filterMode !== "all"
                                 ? "Tidak ada sesi yang cocok dengan filter"
                                 : "Mulai debat baru untuk membuat sesi"}
                         </p>
                     </div>
                 ) : (
-                    <div className="space-y-3 pr-4">
+                    <div className="space-y-2 sm:space-y-3 pr-2 sm:pr-4">
                         {sortedSessions.map((session) => (
                             <Card
                                 key={session.id}
@@ -407,10 +435,10 @@ export const DebateSessionManager = ({
                                         "border-primary",
                                 )}
                             >
-                                <CardHeader className="pb-3">
+                                <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
                                     <div className="flex items-start justify-between gap-2">
-                                        <div className="flex-1 space-y-1">
-                                            <div className="flex items-center gap-2">
+                                        <div className="flex-1 space-y-1 min-w-0">
+                                            <div className="flex items-start gap-2">
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedSessions.has(
@@ -424,77 +452,104 @@ export const DebateSessionManager = ({
                                                     onClick={(e) =>
                                                         e.stopPropagation()
                                                     }
-                                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                    className="h-4 w-4 mt-0.5 rounded border-gray-300 text-primary focus:ring-primary flex-shrink-0"
                                                 />
-                                                {getStatusIcon(session.status)}
-                                                <CardTitle className="text-base line-clamp-1">
-                                                    {session.question}
-                                                </CardTitle>
+                                                <div className="flex items-start gap-1.5 flex-1 min-w-0">
+                                                    {getStatusIcon(
+                                                        session.status,
+                                                    )}
+                                                    <CardTitle className="text-sm sm:text-base line-clamp-2 flex-1">
+                                                        {session.question}
+                                                    </CardTitle>
+                                                </div>
                                             </div>
                                             {session.theme && (
-                                                <CardDescription className="flex items-center gap-1">
-                                                    <Tag className="h-3 w-3" />
-                                                    {session.theme}
+                                                <CardDescription className="flex items-center gap-1 text-xs ml-6">
+                                                    <Tag className="h-3 w-3 flex-shrink-0" />
+                                                    <span className="truncate">
+                                                        {session.theme}
+                                                    </span>
                                                 </CardDescription>
                                             )}
                                         </div>
                                         <Badge
                                             variant="outline"
                                             className={cn(
-                                                "capitalize",
+                                                "capitalize text-[10px] sm:text-xs flex-shrink-0",
                                                 getStatusColor(session.status),
                                             )}
                                         >
-                                            {session.status}
+                                            {session.status === "in-progress"
+                                                ? "Aktif"
+                                                : session.status === "completed"
+                                                  ? "Selesai"
+                                                  : session.status === "paused"
+                                                    ? "Jeda"
+                                                    : "Stop"}
                                         </Badge>
                                     </div>
                                 </CardHeader>
-                                <CardContent className="space-y-3">
+                                <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-6 pt-0">
                                     {/* Session Info */}
-                                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                                    <div className="flex flex-wrap gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground">
                                         <div className="flex items-center gap-1">
-                                            <Calendar className="h-3 w-3" />
-                                            {formatDate(session.updatedAt)}
+                                            <Calendar className="h-3 w-3 flex-shrink-0" />
+                                            <span className="truncate">
+                                                {formatDate(session.updatedAt)}
+                                            </span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <Users className="h-3 w-3" />
-                                            {session.debaters.length} debater
+                                            <Users className="h-3 w-3 flex-shrink-0" />
+                                            {session.debaters.length}
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <MessageSquare className="h-3 w-3" />
-                                            {session.rounds.length} ronde
+                                            <MessageSquare className="h-3 w-3 flex-shrink-0" />
+                                            {session.rounds.length}
                                         </div>
                                         <div className="flex items-center gap-1 capitalize">
-                                            <Filter className="h-3 w-3" />
+                                            <Filter className="h-3 w-3 flex-shrink-0" />
                                             {session.mode}
                                         </div>
                                     </div>
 
                                     {/* Tags */}
-                                    {session.tags && session.tags.length > 0 && (
-                                        <div className="flex flex-wrap gap-1">
-                                            {session.tags.map((tag, idx) => (
-                                                <Badge
-                                                    key={idx}
-                                                    variant="secondary"
-                                                    className="text-xs"
-                                                >
-                                                    {tag}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    )}
+                                    {session.tags &&
+                                        session.tags.length > 0 && (
+                                            <div className="flex flex-wrap gap-1">
+                                                {session.tags
+                                                    .slice(0, 3)
+                                                    .map((tag, idx) => (
+                                                        <Badge
+                                                            key={idx}
+                                                            variant="secondary"
+                                                            className="text-[10px] sm:text-xs px-1.5 py-0"
+                                                        >
+                                                            {tag}
+                                                        </Badge>
+                                                    ))}
+                                                {session.tags.length > 3 && (
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="text-[10px] sm:text-xs px-1.5 py-0"
+                                                    >
+                                                        +
+                                                        {session.tags.length -
+                                                            3}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        )}
 
                                     {/* Winner Badge */}
                                     {session.winner && (
-                                        <div className="flex items-center gap-2 p-2 rounded-md bg-green-500/10 border border-green-500/20">
-                                            <CheckCircle className="h-4 w-4 text-green-500" />
-                                            <span className="text-xs font-medium text-green-500">
-                                                Pemenang:{" "}
+                                        <div className="flex items-center gap-2 p-1.5 sm:p-2 rounded-md bg-green-500/10 border border-green-500/20">
+                                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+                                            <span className="text-[10px] sm:text-xs font-medium text-green-500 truncate">
                                                 {
                                                     session.debaters.find(
                                                         (d) =>
-                                                            d.id === session.winner,
+                                                            d.id ===
+                                                            session.winner,
                                                     )?.name
                                                 }
                                             </span>
@@ -502,16 +557,19 @@ export const DebateSessionManager = ({
                                     )}
 
                                     {/* Action Buttons */}
-                                    <div className="flex flex-wrap gap-2 pt-2">
+                                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 pt-1 sm:pt-2">
                                         <Button
                                             onClick={() =>
                                                 onLoadSession(session)
                                             }
                                             size="sm"
                                             variant="outline"
+                                            className="h-8 text-xs"
                                         >
-                                            <FolderOpen className="h-3 w-3 mr-1" />
-                                            Muat
+                                            <FolderOpen className="h-3 w-3 sm:mr-1" />
+                                            <span className="hidden sm:inline">
+                                                Muat
+                                            </span>
                                         </Button>
                                         {session.canContinue && (
                                             <Button
@@ -520,10 +578,12 @@ export const DebateSessionManager = ({
                                                 }
                                                 size="sm"
                                                 variant="outline"
-                                                className="text-blue-500 border-blue-500/20 hover:bg-blue-500/10"
+                                                className="text-blue-500 border-blue-500/20 hover:bg-blue-500/10 h-8 text-xs"
                                             >
-                                                <Play className="h-3 w-3 mr-1" />
-                                                Lanjutkan
+                                                <Play className="h-3 w-3 sm:mr-1" />
+                                                <span className="hidden sm:inline">
+                                                    Lanjut
+                                                </span>
                                             </Button>
                                         )}
                                         <Button
@@ -532,9 +592,12 @@ export const DebateSessionManager = ({
                                             }
                                             size="sm"
                                             variant="ghost"
+                                            className="h-8 text-xs"
                                         >
-                                            <FileText className="h-3 w-3 mr-1" />
-                                            Detail
+                                            <FileText className="h-3 w-3 sm:mr-1" />
+                                            <span className="hidden sm:inline">
+                                                Detail
+                                            </span>
                                         </Button>
                                         <Button
                                             onClick={() =>
@@ -542,7 +605,7 @@ export const DebateSessionManager = ({
                                             }
                                             size="sm"
                                             variant="ghost"
-                                            className="text-red-500 hover:bg-red-500/10"
+                                            className="text-red-500 hover:bg-red-500/10 h-8 text-xs"
                                         >
                                             <Trash2 className="h-3 w-3" />
                                         </Button>
@@ -614,10 +677,12 @@ export const DebateSessionManager = ({
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Hapus Sesi?</DialogTitle>
-                        <DialogDescription>
-                            Tindakan ini tidak dapat dibatalkan. Sesi debat akan
-                            dihapus secara permanen.
+                        <DialogTitle className="text-base sm:text-lg">
+                            Hapus Sesi?
+                        </DialogTitle>
+                        <DialogDescription className="text-sm">
+                            Tindakan ini tidak dapat dibatalkan. Sesi akan
+                            dihapus permanen.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -640,17 +705,19 @@ export const DebateSessionManager = ({
                 open={showDetailsDialog}
                 onOpenChange={setShowDetailsDialog}
             >
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
-                    <DialogHeader>
-                        <DialogTitle>Detail Sesi Debat</DialogTitle>
+                <DialogContent className="max-w-2xl max-h-[80vh] w-[95vw] sm:w-full overflow-auto">
+                    <DialogHeader className="pb-2">
+                        <DialogTitle className="text-base sm:text-lg">
+                            Detail Sesi
+                        </DialogTitle>
                     </DialogHeader>
                     {selectedSessionForDetails && (
-                        <div className="space-y-4">
+                        <div className="space-y-3 sm:space-y-4">
                             <div>
-                                <Label className="text-muted-foreground">
+                                <Label className="text-xs sm:text-sm text-muted-foreground">
                                     Pertanyaan
                                 </Label>
-                                <p className="font-medium">
+                                <p className="text-sm sm:text-base font-medium mt-1">
                                     {selectedSessionForDetails.question}
                                 </p>
                             </div>
@@ -717,7 +784,10 @@ export const DebateSessionManager = ({
                                         Ronde
                                     </Label>
                                     <p>
-                                        {selectedSessionForDetails.rounds.length}
+                                        {
+                                            selectedSessionForDetails.rounds
+                                                .length
+                                        }
                                     </p>
                                 </div>
                             </div>

@@ -54,7 +54,9 @@ class TogetherApiService {
         this.apiUrl = TOGETHER_API_URL;
     }
 
-    async sendMessage(options: TogetherRequestOptions): Promise<TogetherResponse> {
+    async sendMessage(
+        options: TogetherRequestOptions,
+    ): Promise<TogetherResponse> {
         if (!this.apiKey) {
             throw new Error(
                 "Together API key is not configured. Please set VITE_TOGETHER_API_KEY in .env file",
@@ -72,7 +74,7 @@ class TogetherApiService {
                     model: options.model,
                     messages: options.messages,
                     temperature: options.temperature || 0.7,
-                    max_tokens: options.max_tokens || 2000,
+                    max_tokens: options.max_tokens || 256,
                     stream: options.stream || false,
                 }),
             });
@@ -117,7 +119,7 @@ class TogetherApiService {
                     model: options.model,
                     messages: options.messages,
                     temperature: options.temperature || 0.7,
-                    max_tokens: options.max_tokens || 2000,
+                    max_tokens: options.max_tokens || 256,
                     stream: true,
                 }),
             });

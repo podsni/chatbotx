@@ -11,6 +11,7 @@ import {
     Trash,
     AlertTriangle,
     Zap,
+    Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -45,6 +46,7 @@ interface ChatSidebarProps {
     onSessionChange?: (sessionId: string) => void;
     onNewSession?: (provider: Provider, modelId: string) => void;
     onOpenAgentMode?: () => void;
+    onOpenASSDebateMode?: () => void;
 }
 
 interface GroupedSessions {
@@ -59,6 +61,7 @@ export const ChatSidebar = ({
     onSessionChange,
     onNewSession,
     onOpenAgentMode,
+    onOpenASSDebateMode,
 }: ChatSidebarProps) => {
     const [sessions, setSessions] = useState<Session[]>([]);
     const [ragEnabled, setRagEnabled] = useState(true);
@@ -538,19 +541,34 @@ export const ChatSidebar = ({
                             <div className="text-[9px] text-muted-foreground">
                                 {availableProviders.length} providers
                             </div>
-                            {onOpenAgentMode && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={onOpenAgentMode}
-                                    className="h-7 text-[10px] lg:text-xs gap-1"
-                                >
-                                    <Zap className="w-3 h-3" />
-                                    <span className="hidden sm:inline">
-                                        Agent Mode
-                                    </span>
-                                </Button>
-                            )}
+                            <div className="flex gap-2">
+                                {onOpenAgentMode && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={onOpenAgentMode}
+                                        className="h-7 text-[10px] lg:text-xs gap-1"
+                                    >
+                                        <Zap className="w-3 h-3" />
+                                        <span className="hidden sm:inline">
+                                            Agent
+                                        </span>
+                                    </Button>
+                                )}
+                                {onOpenASSDebateMode && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={onOpenASSDebateMode}
+                                        className="h-7 text-[10px] lg:text-xs gap-1"
+                                    >
+                                        <Users className="w-3 h-3" />
+                                        <span className="hidden sm:inline">
+                                            Debate
+                                        </span>
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ChatSidebar } from "@/components/ChatSidebar";
 import { ChatArea } from "@/components/ChatArea";
 import { AgentMode } from "@/components/AgentMode";
+import { ASSDebateMode } from "@/components/ASSDebateMode";
 import { chatDB, Session } from "@/lib/db";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -14,7 +15,7 @@ import {
 import { ModelSelector } from "@/components/ModelSelector";
 import { Provider, aiApi } from "@/lib/aiApi";
 import { Button } from "@/components/ui/button";
-import { Zap } from "lucide-react";
+import { Zap, Users } from "lucide-react";
 
 const Index = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -29,6 +30,7 @@ const Index = () => {
     >();
     const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
     const [showAgentMode, setShowAgentMode] = useState(false);
+    const [showASSDebateMode, setShowASSDebateMode] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     const { toast } = useToast();
 
@@ -169,6 +171,7 @@ const Index = () => {
                 onSessionChange={handleSessionChange}
                 onNewSession={handleNewSession}
                 onOpenAgentMode={() => setShowAgentMode(true)}
+                onOpenASSDebateMode={() => setShowASSDebateMode(true)}
             />
             <div className="flex-1 flex flex-col relative">
                 <ChatArea
@@ -193,6 +196,11 @@ const Index = () => {
             <AgentMode
                 isOpen={showAgentMode}
                 onClose={() => setShowAgentMode(false)}
+            />
+
+            <ASSDebateMode
+                isOpen={showASSDebateMode}
+                onClose={() => setShowASSDebateMode(false)}
             />
 
             {/* Welcome Dialog for first time users */}

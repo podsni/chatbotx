@@ -67,27 +67,31 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
                 },
                 p({ children }) {
                     return (
-                        <p className="my-2 leading-relaxed text-foreground">
+                        <p className="my-2 leading-relaxed text-foreground break-words max-w-full">
                             {children}
                         </p>
                     );
                 },
                 ul({ children }) {
                     return (
-                        <ul className="list-disc list-inside my-2 space-y-1 text-foreground">
+                        <ul className="list-disc list-inside my-2 space-y-1 text-foreground max-w-full">
                             {children}
                         </ul>
                     );
                 },
                 ol({ children }) {
                     return (
-                        <ol className="list-decimal list-inside my-2 space-y-1 text-foreground">
+                        <ol className="list-decimal list-inside my-2 space-y-1 text-foreground max-w-full">
                             {children}
                         </ol>
                     );
                 },
                 li({ children }) {
-                    return <li className="ml-2">{children}</li>;
+                    return (
+                        <li className="ml-2 break-words max-w-full">
+                            {children}
+                        </li>
+                    );
                 },
                 a({ href, children }) {
                     return (
@@ -103,15 +107,15 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
                 },
                 blockquote({ children }) {
                     return (
-                        <blockquote className="border-l-4 border-primary/50 pl-4 my-2 italic text-muted-foreground">
+                        <blockquote className="border-l-4 border-primary/50 pl-4 my-2 italic text-muted-foreground break-words max-w-full">
                             {children}
                         </blockquote>
                     );
                 },
                 table({ children }) {
                     return (
-                        <div className="my-2 overflow-x-auto">
-                            <table className="min-w-full border-collapse border border-border">
+                        <div className="my-2 overflow-x-auto max-w-full">
+                            <table className="w-full border-collapse border border-border">
                                 {children}
                             </table>
                         </div>
@@ -119,14 +123,14 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
                 },
                 th({ children }) {
                     return (
-                        <th className="border border-border px-3 py-2 bg-muted font-semibold text-left">
+                        <th className="border border-border px-2 sm:px-3 py-1 sm:py-2 bg-muted font-semibold text-left text-xs sm:text-sm break-words">
                             {children}
                         </th>
                     );
                 },
                 td({ children }) {
                     return (
-                        <td className="border border-border px-3 py-2">
+                        <td className="border border-border px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm break-words">
                             {children}
                         </td>
                     );
@@ -187,17 +191,18 @@ const CodeBlock = ({ language, code }: CodeBlockProps) => {
             </div>
 
             {/* Code content */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-w-full">
                 <SyntaxHighlighter
                     language={language}
                     style={vscDarkPlus}
                     customStyle={{
                         margin: 0,
-                        padding: "1rem",
+                        padding: "0.75rem",
                         background: "#1e1e1e",
-                        fontSize: "0.875rem",
+                        fontSize: "0.75rem",
+                        maxWidth: "100%",
                     }}
-                    wrapLongLines={false}
+                    wrapLongLines={true}
                     PreTag="div"
                 >
                     {code}

@@ -16,6 +16,8 @@ import {
     Square,
     Zap,
     Bot,
+    Save,
+    FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,13 +43,22 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { MarkdownRenderer } from "./MarkdownRenderer";
+import { DebateSessionManager } from "./DebateSessionManager";
+import { DebateAnalytics } from "./DebateAnalytics";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
     DebateSession,
     Debater,
     DebateRound,
+    DebateArgument,
     DebateFormat,
     VotingSystem,
     PersonalityType,
@@ -87,6 +98,7 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
     const [activeTab, setActiveTab] = useState("debate");
     const [maxTokens, setMaxTokens] = useState(1024);
     const [savedSessions, setSavedSessions] = useState<DebateSession[]>([]);
+    const [showSessionManager, setShowSessionManager] = useState(false);
     const [characterModels, setCharacterModels] = useState<
         Record<PersonalityType, { provider: Provider; modelId: string }>
     >({
@@ -189,6 +201,7 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
                 }
             }, 100);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentSession?.rounds?.length]);
 
     const initializeDebaters = (): Debater[] => {
@@ -256,23 +269,54 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
     const stopDebate = () => {
         stopDebateRef.current = true;
         setIsDebating(false);
+
+        // Update session status
+        if (currentSession) {
+            const updatedSession = {
+                ...currentSession,
+                status: "stopped" as const,
+                updatedAt: Date.now(),
+                canContinue:
+                    currentSession.rounds.length < currentSession.maxIterations,
+            };
+            setCurrentSession(updatedSession);
+        }
+
         toast({
             title: "Debat Dihentikan",
             description: "Debat telah dihentikan oleh pengguna",
         });
     };
 
-    const saveSession = () => {
-        if (!currentSession) return;
+    const saveSession = (
+        session: DebateSession,
+        metadata: { theme?: string; tags?: string[]; notes?: string },
+    ) => {
+        const updatedSession = {
+            ...session,
+            theme: metadata.theme,
+            tags: metadata.tags,
+            notes: metadata.notes,
+            updatedAt: Date.now(),
+        };
 
-        const sessions = [...savedSessions, currentSession];
+        // Check if session already exists
+        const existingIndex = savedSessions.findIndex(
+            (s) => s.id === session.id,
+        );
+        let sessions: DebateSession[];
+
+        if (existingIndex >= 0) {
+            // Update existing session
+            sessions = [...savedSessions];
+            sessions[existingIndex] = updatedSession;
+        } else {
+            // Add new session
+            sessions = [...savedSessions, updatedSession];
+        }
+
         setSavedSessions(sessions);
         localStorage.setItem("ass_debate_sessions", JSON.stringify(sessions));
-
-        toast({
-            title: "Sesi Tersimpan",
-            description: `Debat "${currentSession.question}" telah disimpan`,
-        });
     };
 
     const loadSessions = () => {
@@ -287,10 +331,91 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
         setQuestion(session.question);
         setDebateMode(session.mode);
         setVotingSystem(session.votingSystem);
+        setMaxIterations(session.maxIterations);
+        setConsensusThreshold(session.consensusThreshold);
+        setSelectedPersonalities(
+            session.debaters.map((d) => d.personalityType),
+        );
+        setShowSessionManager(false);
         toast({
             title: "Sesi Dimuat",
             description: "Sesi debat berhasil dimuat",
         });
+    };
+
+    const deleteSession = (sessionId: string) => {
+        const sessions = savedSessions.filter((s) => s.id !== sessionId);
+        setSavedSessions(sessions);
+        localStorage.setItem("ass_debate_sessions", JSON.stringify(sessions));
+    };
+
+    const continueSession = async (session: DebateSession) => {
+        if (!session.canContinue) {
+            toast({
+                title: "Tidak Dapat Dilanjutkan",
+                description:
+                    "Debat ini sudah mencapai batas maksimal atau sudah selesai",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setCurrentSession({
+            ...session,
+            status: "in-progress",
+            updatedAt: Date.now(),
+        });
+        setQuestion(session.question);
+        setDebateMode(session.mode);
+        setVotingSystem(session.votingSystem);
+        setIsDebating(true);
+        setShowSessionManager(false);
+        setActiveTab("debate");
+
+        // Continue the debate from where it left off
+        await runDebate({
+            ...session,
+            status: "in-progress",
+        });
+    };
+
+    const exportSessions = (sessionIds: string[]) => {
+        const sessionsToExport = savedSessions.filter((s) =>
+            sessionIds.includes(s.id),
+        );
+        const dataStr = JSON.stringify(sessionsToExport, null, 2);
+        const dataBlob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `debate-sessions-${Date.now()}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        toast({
+            title: "Sesi Diekspor",
+            description: `${sessionsToExport.length} sesi berhasil diekspor`,
+        });
+    };
+
+    const importSessions = (importedSessions: DebateSession[]) => {
+        const newSessions = [...savedSessions];
+        let addedCount = 0;
+
+        importedSessions.forEach((imported) => {
+            // Check if session already exists
+            const exists = newSessions.some((s) => s.id === imported.id);
+            if (!exists) {
+                newSessions.push(imported);
+                addedCount++;
+            }
+        });
+
+        setSavedSessions(newSessions);
+        localStorage.setItem(
+            "ass_debate_sessions",
+            JSON.stringify(newSessions),
+        );
     };
 
     const startDebate = async () => {
@@ -325,6 +450,10 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
             consensusThreshold,
             maxIterations,
             teams: debateTeams,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            status: "in-progress",
+            canContinue: true,
         };
 
         setCurrentSession(session);
@@ -361,6 +490,28 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
         } finally {
             setIsDebating(false);
             stopDebateRef.current = false;
+
+            // Update session status
+            if (session) {
+                const finalStatus = session.rounds.some(
+                    (r) => r.consensusReached,
+                )
+                    ? "completed"
+                    : stopDebateRef.current
+                      ? "stopped"
+                      : "paused";
+
+                setCurrentSession((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              status: finalStatus,
+                              updatedAt: Date.now(),
+                              canContinue: finalStatus !== "completed",
+                          }
+                        : null,
+                );
+            }
         }
     };
 
@@ -1884,46 +2035,46 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <div className="flex flex-col sm:flex-row gap-2 mt-4 w-full">
+                                            <Button
+                                                onClick={startDebate}
+                                                disabled={
+                                                    isDebating ||
+                                                    !question ||
+                                                    !selectedPersonalities.length
+                                                }
+                                                className="flex-1"
+                                                size="lg"
+                                            >
+                                                <Play className="h-4 w-4 mr-2" />
+                                                Mulai Debat
+                                            </Button>
+                                            {isDebating && (
+                                                <Button
+                                                    onClick={stopDebate}
+                                                    variant="destructive"
+                                                    className="flex-1 animate-pulse"
+                                                    size="lg"
+                                                >
+                                                    <X className="h-4 w-4 mr-2" />
+                                                    Stop Debat
+                                                </Button>
+                                            )}
+                                            <Button
+                                                onClick={() =>
+                                                    setShowSessionManager(true)
+                                                }
+                                                variant="outline"
+                                                size="lg"
+                                            >
+                                                <FolderOpen className="h-4 w-4 mr-2" />
+                                                Sesi ({savedSessions.length})
+                                            </Button>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             )}
-
-                            {/* Action Buttons */}
-                            <div className="flex flex-col sm:flex-row gap-2">
-                                <Button
-                                    onClick={startDebate}
-                                    disabled={
-                                        isDebating ||
-                                        !question.trim() ||
-                                        selectedPersonalities.length < 2
-                                    }
-                                    className="flex-1"
-                                    size="lg"
-                                >
-                                    <Play className="h-4 w-4 mr-2" />
-                                    Mulai Debat
-                                </Button>
-                                {isDebating && (
-                                    <Button
-                                        onClick={stopDebate}
-                                        variant="destructive"
-                                        className="flex-1 animate-pulse"
-                                        size="lg"
-                                    >
-                                        <X className="h-4 w-4 mr-2" />
-                                        Stop Debat
-                                    </Button>
-                                )}
-                                {currentSession && !isDebating && (
-                                    <Button
-                                        onClick={saveSession}
-                                        variant="outline"
-                                        size="lg"
-                                    >
-                                        Simpan
-                                    </Button>
-                                )}
-                            </div>
                         </div>
                     </div>
                 ) : (
@@ -1947,7 +2098,9 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="analytics"
-                                    disabled={!currentSession.analytics}
+                                    disabled={
+                                        currentSession.rounds.length === 0
+                                    }
                                     className="text-xs sm:text-sm"
                                 >
                                     <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
@@ -1956,13 +2109,12 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                     </span>
                                 </TabsTrigger>
                                 <TabsTrigger
-                                    value="tree"
-                                    disabled={!currentSession.analytics}
+                                    value="sessions"
                                     className="text-xs sm:text-sm"
                                 >
-                                    <GitBranch className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                                    <FolderOpen className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                                     <span className="hidden sm:inline">
-                                        Tree
+                                        Sesi
                                     </span>
                                 </TabsTrigger>
                             </TabsList>
@@ -1985,41 +2137,41 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                     className="h-full m-0 overflow-hidden"
                                 >
                                     <div className="h-full w-full overflow-y-auto overflow-x-hidden px-1 pr-2 sm:pr-3 scroll-container pb-4">
-                                        {renderAnalytics()}
+                                        {currentSession.rounds.length > 0 ? (
+                                            <DebateAnalytics
+                                                session={currentSession}
+                                            />
+                                        ) : (
+                                            <Card>
+                                                <CardContent className="pt-6">
+                                                    <div className="text-center text-muted-foreground">
+                                                        <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                                        <p>
+                                                            Belum ada data untuk
+                                                            dianalisis
+                                                        </p>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        )}
                                     </div>
                                 </TabsContent>
 
                                 <TabsContent
-                                    value="tree"
+                                    value="sessions"
                                     className="h-full m-0 overflow-hidden"
                                 >
                                     <div className="h-full w-full overflow-y-auto overflow-x-hidden px-1 pr-2 sm:pr-3 scroll-container pb-4">
-                                        <Card>
-                                            <CardHeader>
-                                                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                                                    <GitBranch className="h-4 w-4 sm:h-5 sm:w-5" />
-                                                    Debate Tree Structure
-                                                </CardTitle>
-                                                <CardDescription className="text-xs sm:text-sm">
-                                                    Argument relationships and
-                                                    flow
-                                                </CardDescription>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <div className="text-sm text-muted-foreground text-center py-8">
-                                                    <GitBranch className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                                    <p>
-                                                        Visual debate tree
-                                                        coming soon
-                                                    </p>
-                                                    <p className="text-xs mt-2">
-                                                        Will show argument
-                                                        connections and debate
-                                                        flow
-                                                    </p>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
+                                        <DebateSessionManager
+                                            sessions={savedSessions}
+                                            currentSession={currentSession}
+                                            onLoadSession={loadSession}
+                                            onSaveSession={saveSession}
+                                            onDeleteSession={deleteSession}
+                                            onContinueSession={continueSession}
+                                            onExportSessions={exportSessions}
+                                            onImportSessions={importSessions}
+                                        />
                                     </div>
                                 </TabsContent>
                             </div>
@@ -2051,53 +2203,45 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                     Stop Debat
                                 </Button>
                             )}
-                            {currentSession.analytics && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                        setShowAnalytics(!showAnalytics)
-                                    }
-                                    className="w-full sm:w-auto"
-                                >
-                                    <BarChart3 className="h-4 w-4 mr-2" />
-                                    <span className="hidden sm:inline">
-                                        Toggle Analytics
-                                    </span>
-                                    <span className="sm:hidden">Analytics</span>
-                                </Button>
-                            )}
-
-                            {/* Saved Sessions */}
-                            {savedSessions.length > 0 && !currentSession && (
-                                <Card className="mt-4">
-                                    <CardHeader>
-                                        <CardTitle className="text-sm">
-                                            Sesi Tersimpan
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-2">
-                                        {savedSessions.map((session, idx) => (
-                                            <Button
-                                                key={idx}
-                                                variant="outline"
-                                                className="w-full justify-start text-left"
-                                                onClick={() =>
-                                                    loadSession(session)
-                                                }
-                                            >
-                                                <div className="truncate">
-                                                    {session.question}
-                                                </div>
-                                            </Button>
-                                        ))}
-                                    </CardContent>
-                                </Card>
-                            )}
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowSessionManager(true)}
+                                className="w-full sm:w-auto"
+                            >
+                                <FolderOpen className="h-4 w-4 mr-2" />
+                                Kelola Sesi ({savedSessions.length})
+                            </Button>
                         </div>
                     </div>
                 )}
             </div>
+
+            {/* Session Manager Dialog */}
+            <Dialog
+                open={showSessionManager}
+                onOpenChange={setShowSessionManager}
+            >
+                <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+                    <DialogHeader className="p-6 pb-0">
+                        <DialogTitle className="flex items-center gap-2">
+                            <FolderOpen className="h-5 w-5" />
+                            Manajemen Sesi Debat
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="p-6 pt-4">
+                        <DebateSessionManager
+                            sessions={savedSessions}
+                            currentSession={currentSession}
+                            onLoadSession={loadSession}
+                            onSaveSession={saveSession}
+                            onDeleteSession={deleteSession}
+                            onContinueSession={continueSession}
+                            onExportSessions={exportSessions}
+                            onImportSessions={importSessions}
+                        />
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

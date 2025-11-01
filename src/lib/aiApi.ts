@@ -292,6 +292,7 @@ class UnifiedAiService {
         provider: Provider,
         modelId: string,
         messages: Array<{ role: string; content: string }>,
+        maxTokens?: number,
     ): Promise<{ content: string; metadata?: any }> {
         return new Promise((resolve, reject) => {
             let fullContent = "";
@@ -302,7 +303,7 @@ class UnifiedAiService {
                     model: modelId,
                     messages,
                     temperature: 0.7,
-                    max_tokens: 2000,
+                    max_tokens: maxTokens || 2000,
                 },
                 (chunk) => {
                     fullContent += chunk;

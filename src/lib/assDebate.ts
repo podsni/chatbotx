@@ -60,6 +60,7 @@ export interface DebateArgument {
 export interface DebateSession {
     id: string;
     question: string;
+    theme?: string; // Optional theme/category for the debate
     mode: DebateFormat;
     votingSystem: VotingSystem;
     debaters: Debater[];
@@ -71,6 +72,13 @@ export interface DebateSession {
     teams?: DebateTeam[]; // For team debates
     bracket?: TournamentBracket; // For tournament mode
     analytics?: DebateAnalytics;
+    // Session metadata
+    createdAt: number; // timestamp
+    updatedAt: number; // timestamp
+    status: "in-progress" | "completed" | "paused" | "stopped";
+    tags?: string[]; // User-defined tags
+    notes?: string; // User notes about the debate
+    canContinue?: boolean; // Whether the debate can be resumed
 }
 
 export interface DebateTeam {

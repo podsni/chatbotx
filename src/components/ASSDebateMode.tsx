@@ -61,7 +61,7 @@ import {
     DebateTeam,
     TournamentBracket,
 } from "@/lib/assDebate";
-import { aiApi } from "@/lib/aiApi";
+import { aiApi, Provider } from "@/lib/aiApi";
 
 interface ASSDebateModeProps {
     isOpen: boolean;
@@ -87,8 +87,58 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
     const [activeTab, setActiveTab] = useState("debate");
     const [maxTokens, setMaxTokens] = useState(1024);
     const [savedSessions, setSavedSessions] = useState<DebateSession[]>([]);
+    const [characterModels, setCharacterModels] = useState<
+        Record<PersonalityType, { provider: Provider; modelId: string }>
+    >({
+        optimist: { provider: "poe", modelId: "GPT-5-mini" },
+        skeptic: { provider: "groq", modelId: "openai/gpt-oss-20b" },
+        visionary: {
+            provider: "together",
+            modelId: "Qwen/Qwen3-Next-80B-A3B-Instruct",
+        },
+        critic: {
+            provider: "together",
+            modelId: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        },
+        scientist: { provider: "groq", modelId: "openai/gpt-oss-120b" },
+        artist: { provider: "poe", modelId: "Grok-4-Fast-Reasoning" },
+        philosopher: { provider: "groq", modelId: "groq/compound" },
+        pragmatist: { provider: "poe", modelId: "Gemini-2.5-Flash-Lite" },
+    });
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
+
+    // Model options per provider
+    const modelOptions = {
+        poe: [
+            { id: "GPT-5-mini", name: "GPT-5 Mini (Recommended)" },
+            { id: "GPT-5-nano", name: "GPT-5 Nano (Ultra Fast)" },
+            { id: "Grok-4-Fast-Reasoning", name: "Grok-4 Fast Reasoning" },
+            { id: "Gemini-2.5-Flash-Lite", name: "Gemini 2.5 Flash Lite" },
+        ],
+        groq: [
+            { id: "openai/gpt-oss-20b", name: "GPT-OSS 20B" },
+            { id: "groq/compound", name: "Groq Compound" },
+            { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B Instant" },
+            { id: "openai/gpt-oss-120b", name: "GPT-OSS 120B (Terbesar)" },
+            {
+                id: "moonshotai/kimi-k2-instruct-0905",
+                name: "Kimi K2 Instruct",
+            },
+        ],
+        together: [
+            { id: "openai/gpt-oss-20b", name: "GPT-OSS 20B" },
+            {
+                id: "Qwen/Qwen3-Next-80B-A3B-Instruct",
+                name: "Qwen3 Next 80B (Terbesar)",
+            },
+            {
+                id: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+                name: "Llama 4 Maverick 17B",
+            },
+            { id: "zai-org/GLM-4.5-Air-FP8", name: "GLM 4.5 Air FP8" },
+        ],
+    };
 
     // Load saved sessions on mount
     useEffect(() => {
@@ -144,12 +194,36 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
     const initializeDebaters = (): Debater[] => {
         return selectedPersonalities.map((personality, index) => {
             const preset = PRESET_DEBATERS[personality];
+            const modelConfig = characterModels[personality];
             return {
                 ...preset,
                 id: `debater-${index}`,
+                provider: modelConfig.provider,
+                modelId: modelConfig.modelId,
                 internalBelief: Math.random(),
             };
         });
+    };
+
+    const updateCharacterModel = (
+        personality: PersonalityType,
+        provider: Provider,
+        modelId: string,
+    ) => {
+        setCharacterModels((prev) => ({
+            ...prev,
+            [personality]: { provider, modelId },
+        }));
+    };
+
+    const getLeadingDebater = (round: DebateRound): string | null => {
+        if (!round.votes || round.votes.length === 0) return null;
+        const consensus = calculateConsensus(
+            round.votes,
+            currentSession?.consensusThreshold || 0.6,
+            currentSession?.votingSystem || "ranked",
+        );
+        return consensus.leader;
     };
 
     const initializeTeams = (debaters: Debater[]): DebateTeam[] => {
@@ -730,27 +804,83 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                     </CardHeader>
                     <CardContent className="p-2 sm:p-3">
                         <div className="grid grid-cols-2 gap-2 w-full">
-                            {currentSession.debaters.map((debater) => {
+                            {currentSession.debaters.map((debater, debIdx) => {
                                 const team = teams.find(
                                     (t) => t.id === debater.teamId,
                                 );
+                                // Calculate win count for this debater
+                                const winCount = currentSession.rounds.filter(
+                                    (r) => {
+                                        if (!r.votes || r.votes.length === 0)
+                                            return false;
+                                        const consensus = calculateConsensus(
+                                            r.votes,
+                                            currentSession.consensusThreshold,
+                                            currentSession.votingSystem,
+                                        );
+                                        return consensus.leader === debater.id;
+                                    },
+                                ).length;
+
+                                const isCurrentLeader =
+                                    currentSession.rounds.length > 0 &&
+                                    (() => {
+                                        const lastRound =
+                                            currentSession.rounds[
+                                                currentSession.rounds.length - 1
+                                            ];
+                                        if (
+                                            !lastRound.votes ||
+                                            lastRound.votes.length === 0
+                                        )
+                                            return false;
+                                        const consensus = calculateConsensus(
+                                            lastRound.votes,
+                                            currentSession.consensusThreshold,
+                                            currentSession.votingSystem,
+                                        );
+                                        return consensus.leader === debater.id;
+                                    })();
+
                                 return (
                                     <div
                                         key={debater.id}
-                                        className="p-1.5 sm:p-2 border rounded transition-smooth w-full min-w-0"
+                                        className={cn(
+                                            "p-1.5 sm:p-2 border rounded transition-all w-full min-w-0 relative overflow-hidden",
+                                            isCurrentLeader &&
+                                                "ring-2 ring-green-500 shadow-lg shadow-green-500/20",
+                                        )}
                                         style={
                                             team
                                                 ? { borderColor: team.color }
                                                 : {}
                                         }
                                     >
-                                        <div className="flex items-center gap-1 mb-1 w-full">
+                                        {isCurrentLeader && (
+                                            <div className="absolute top-0 right-0 w-8 h-8 bg-green-500/20 rounded-bl-full" />
+                                        )}
+                                        <div className="flex items-center gap-1 mb-1 w-full relative z-10">
                                             <span className="text-sm sm:text-base flex-shrink-0">
                                                 {debater.emoji}
                                             </span>
                                             <div className="flex-1 min-w-0 overflow-hidden">
-                                                <div className="font-medium text-[10px] sm:text-xs truncate w-full">
+                                                <div className="font-medium text-[10px] sm:text-xs truncate w-full flex items-center gap-1">
                                                     {debater.name}
+                                                    {winCount > 0 && (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-[8px] px-1 py-0 bg-green-500/20 border-green-500/50"
+                                                        >
+                                                            {winCount}🏆
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                <div className="text-[8px] text-muted-foreground truncate">
+                                                    {debater.provider} •{" "}
+                                                    {debater.modelId
+                                                        .split("/")
+                                                        .pop()
+                                                        ?.substring(0, 15)}
                                                 </div>
                                             </div>
                                         </div>
@@ -777,12 +907,23 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                         )}
                                         {debater.internalBelief !==
                                             undefined && (
-                                            <Progress
-                                                value={
-                                                    debater.internalBelief * 100
-                                                }
-                                                className="h-1 mt-1"
-                                            />
+                                            <div className="space-y-0.5">
+                                                <Progress
+                                                    value={
+                                                        debater.internalBelief *
+                                                        100
+                                                    }
+                                                    className="h-1 mt-1"
+                                                />
+                                                <div className="text-[8px] text-muted-foreground text-right">
+                                                    Keyakinan:{" "}
+                                                    {(
+                                                        debater.internalBelief *
+                                                        100
+                                                    ).toFixed(0)}
+                                                    %
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 );
@@ -822,7 +963,13 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                 return (
                                     <div
                                         key={argIndex}
-                                        className="p-2 sm:p-3 rounded-lg bg-muted/30 border border-muted animate-fade-in debate-argument w-full"
+                                        className={cn(
+                                            "p-2 sm:p-3 rounded-lg border animate-fade-in debate-argument w-full transition-all",
+                                            getLeadingDebater(round) ===
+                                                arg.debaterId
+                                                ? "bg-green-500/20 border-green-500/50 shadow-lg shadow-green-500/20"
+                                                : "bg-muted/30 border-muted",
+                                        )}
                                         style={
                                             team
                                                 ? {
@@ -838,8 +985,25 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                                 {debater?.emoji}
                                             </span>
                                             <div className="flex-1 min-w-0">
-                                                <div className="font-medium text-[10px] sm:text-xs">
-                                                    {debater?.name}
+                                                <div className="font-medium text-[10px] sm:text-xs flex items-center gap-1 flex-wrap">
+                                                    <span>{debater?.name}</span>
+                                                    {getLeadingDebater(
+                                                        round,
+                                                    ) === arg.debaterId && (
+                                                        <Badge
+                                                            variant="default"
+                                                            className="text-[8px] sm:text-[9px] px-1 py-0 bg-green-500"
+                                                        >
+                                                            🏆 Menang
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                                                    {debater?.provider} •{" "}
+                                                    {debater?.modelId
+                                                        .split("/")
+                                                        .pop()
+                                                        ?.substring(0, 20)}
                                                 </div>
                                             </div>
                                             {arg.beliefUpdate !== undefined && (
@@ -866,11 +1030,11 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                             {/* Voting Results */}
                             {round.votes && round.votes.length > 0 && (
                                 <div className="mt-2 p-2 bg-blue-500/10 rounded border border-blue-500/20 animate-slide-in">
-                                    <div className="font-medium mb-1 flex items-center gap-1 text-xs">
+                                    <div className="font-medium mb-2 flex items-center gap-1 text-xs">
                                         <Award className="h-3 w-3" />
-                                        Voting ({votingSystem})
+                                        Hasil Voting ({votingSystem})
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                         {(() => {
                                             const consensus =
                                                 calculateConsensus(
@@ -881,6 +1045,8 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                             const sortedScores = Object.entries(
                                                 consensus.scores || {},
                                             ).sort((a, b) => b[1] - a[1]);
+                                            const maxScore =
+                                                sortedScores[0]?.[1] || 1;
 
                                             return sortedScores.map(
                                                 ([debaterId, score], idx) => {
@@ -893,27 +1059,63 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                                     const isLeader =
                                                         debaterId ===
                                                         consensus.leader;
+                                                    const scorePercentage =
+                                                        (score / maxScore) *
+                                                        100;
 
                                                     return (
                                                         <div
                                                             key={debaterId}
-                                                            className="flex items-center gap-1 text-xs"
-                                                        >
-                                                            <span className="w-4">
-                                                                {idx + 1}.
-                                                            </span>
-                                                            <span className="text-sm">
-                                                                {debater?.emoji}
-                                                            </span>
-                                                            <span className="flex-1 truncate">
-                                                                {debater?.name}
-                                                            </span>
-                                                            <span className="font-medium">
-                                                                {score}
-                                                            </span>
-                                                            {isLeader && (
-                                                                <Trophy className="h-3 w-3 text-yellow-500" />
+                                                            className={cn(
+                                                                "relative overflow-hidden rounded p-2 transition-all",
+                                                                isLeader
+                                                                    ? "bg-green-500/20 border border-green-500/50"
+                                                                    : "bg-muted/50",
                                                             )}
+                                                        >
+                                                            {/* Progress bar background */}
+                                                            <div
+                                                                className={cn(
+                                                                    "absolute inset-0 transition-all duration-500",
+                                                                    isLeader
+                                                                        ? "bg-gradient-to-r from-green-500/30 to-transparent"
+                                                                        : "bg-gradient-to-r from-primary/20 to-transparent",
+                                                                )}
+                                                                style={{
+                                                                    width: `${scorePercentage}%`,
+                                                                }}
+                                                            />
+
+                                                            <div className="relative flex items-center gap-2 text-xs">
+                                                                <span
+                                                                    className={cn(
+                                                                        "flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold",
+                                                                        isLeader
+                                                                            ? "bg-green-500 text-white"
+                                                                            : "bg-muted text-muted-foreground",
+                                                                    )}
+                                                                >
+                                                                    {idx + 1}
+                                                                </span>
+                                                                <span className="text-base">
+                                                                    {
+                                                                        debater?.emoji
+                                                                    }
+                                                                </span>
+                                                                <span className="flex-1 truncate font-medium">
+                                                                    {
+                                                                        debater?.name
+                                                                    }
+                                                                </span>
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="font-bold text-sm">
+                                                                        {score}
+                                                                    </span>
+                                                                    {isLeader && (
+                                                                        <Trophy className="h-4 w-4 text-yellow-500 animate-pulse" />
+                                                                    )}
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     );
                                                 },
@@ -1303,17 +1505,19 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                     </CardContent>
                 </Card>
 
-                {/* Personality Selection */}
+                {/* Personality Selection with Model Config */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-sm">Pilih Debater</CardTitle>
+                        <CardTitle className="text-sm">
+                            Pilih Debater & Model AI
+                        </CardTitle>
                         <CardDescription>
-                            Pilih minimal 2 personalitas dan sesuaikan model
-                            mereka
+                            Pilih minimal 2 personalitas dan pilih provider +
+                            model untuk setiap debater
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-3">
                             {(
                                 Object.keys(
                                     PRESET_DEBATERS,
@@ -1322,21 +1526,26 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                 const preset = PRESET_DEBATERS[personality];
                                 const isSelected =
                                     selectedPersonalities.includes(personality);
+                                const modelConfig =
+                                    characterModels[personality];
 
                                 return (
                                     <div
                                         key={personality}
-                                        onClick={() =>
-                                            togglePersonality(personality)
-                                        }
                                         className={cn(
-                                            "p-2 border rounded cursor-pointer transition-all",
+                                            "p-3 border rounded transition-all",
                                             isSelected
                                                 ? "border-primary bg-primary/5"
-                                                : "border-muted hover:border-primary/50",
+                                                : "border-muted",
                                         )}
                                     >
-                                        <div className="flex items-center gap-2">
+                                        {/* Character Selection */}
+                                        <div
+                                            className="flex items-center gap-2 mb-2 cursor-pointer"
+                                            onClick={() =>
+                                                togglePersonality(personality)
+                                            }
+                                        >
                                             <span className="text-xl">
                                                 {preset.emoji}
                                             </span>
@@ -1363,6 +1572,108 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                                 )}
                                             </div>
                                         </div>
+
+                                        {/* Model Configuration */}
+                                        {isSelected && (
+                                            <div className="space-y-2 mt-2 pt-2 border-t">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {/* Provider Selection */}
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[10px]">
+                                                            Provider
+                                                        </Label>
+                                                        <Select
+                                                            value={
+                                                                modelConfig.provider
+                                                            }
+                                                            onValueChange={(
+                                                                value,
+                                                            ) => {
+                                                                const firstModel =
+                                                                    modelOptions[
+                                                                        value as Provider
+                                                                    ][0].id;
+                                                                updateCharacterModel(
+                                                                    personality,
+                                                                    value as Provider,
+                                                                    firstModel,
+                                                                );
+                                                            }}
+                                                        >
+                                                            <SelectTrigger className="h-8 text-xs">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="poe">
+                                                                    POE
+                                                                    (Multi-Model)
+                                                                </SelectItem>
+                                                                <SelectItem value="groq">
+                                                                    GROQ (Cepat)
+                                                                </SelectItem>
+                                                                <SelectItem value="together">
+                                                                    Together AI
+                                                                </SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    {/* Model Selection */}
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[10px]">
+                                                            Model
+                                                        </Label>
+                                                        <Select
+                                                            value={
+                                                                modelConfig.modelId
+                                                            }
+                                                            onValueChange={(
+                                                                value,
+                                                            ) =>
+                                                                updateCharacterModel(
+                                                                    personality,
+                                                                    modelConfig.provider,
+                                                                    value,
+                                                                )
+                                                            }
+                                                        >
+                                                            <SelectTrigger className="h-8 text-xs">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {modelOptions[
+                                                                    modelConfig
+                                                                        .provider
+                                                                ].map(
+                                                                    (model) => (
+                                                                        <SelectItem
+                                                                            key={
+                                                                                model.id
+                                                                            }
+                                                                            value={
+                                                                                model.id
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                model.name
+                                                                            }
+                                                                        </SelectItem>
+                                                                    ),
+                                                                )}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                </div>
+                                                <div className="text-[9px] text-muted-foreground">
+                                                    ⚡{" "}
+                                                    {modelConfig.provider.toUpperCase()}{" "}
+                                                    •{" "}
+                                                    {modelConfig.modelId
+                                                        .split("/")
+                                                        .pop()}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}

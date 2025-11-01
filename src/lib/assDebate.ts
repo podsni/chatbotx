@@ -167,7 +167,7 @@ export const PRESET_DEBATERS: Record<PersonalityType, Omit<Debater, "id">> = {
         name: "Visionary",
         emoji: "🚀",
         provider: "together",
-        modelId: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+        modelId: "Qwen/Qwen3-Next-80B-A3B-Instruct",
         personalityType: "visionary",
         traits: {
             perspective: "Champions breakthrough ideas",
@@ -186,7 +186,7 @@ export const PRESET_DEBATERS: Record<PersonalityType, Omit<Debater, "id">> = {
         name: "Critic",
         emoji: "⚖️",
         provider: "together",
-        modelId: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+        modelId: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
         personalityType: "critic",
         traits: {
             perspective: "Highlights potential issues",
@@ -205,7 +205,7 @@ export const PRESET_DEBATERS: Record<PersonalityType, Omit<Debater, "id">> = {
         name: "Scientist",
         emoji: "🔬",
         provider: "groq",
-        modelId: "meta-llama/llama-3.3-70b-versatile",
+        modelId: "openai/gpt-oss-120b",
         personalityType: "scientist",
         traits: {
             perspective: "Evidence-based, empirical approach",
@@ -224,7 +224,7 @@ export const PRESET_DEBATERS: Record<PersonalityType, Omit<Debater, "id">> = {
         name: "Artist",
         emoji: "🎨",
         provider: "poe",
-        modelId: "GPT-5-nano",
+        modelId: "Grok-4-Fast-Reasoning",
         personalityType: "artist",
         traits: {
             perspective: "Creative, aesthetic, human-centered",
@@ -238,8 +238,8 @@ export const PRESET_DEBATERS: Record<PersonalityType, Omit<Debater, "id">> = {
     philosopher: {
         name: "Philosopher",
         emoji: "🤔",
-        provider: "together",
-        modelId: "Qwen/Qwen2.5-72B-Instruct-Turbo",
+        provider: "groq",
+        modelId: "groq/compound",
         personalityType: "philosopher",
         traits: {
             perspective: "Deep, existential, questioning fundamentals",
@@ -253,8 +253,8 @@ export const PRESET_DEBATERS: Record<PersonalityType, Omit<Debater, "id">> = {
     pragmatist: {
         name: "Pragmatist",
         emoji: "🛠️",
-        provider: "groq",
-        modelId: "llama-3.1-8b-instant",
+        provider: "poe",
+        modelId: "Gemini-2.5-Flash-Lite",
         personalityType: "pragmatist",
         traits: {
             perspective: "Practical, results-oriented, implementable",

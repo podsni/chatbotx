@@ -1,10 +1,13 @@
-// Unified AI API service - supports multiple providers (Poe, Together, Groq)
+// Unified AI API service - supports multiple providers (Poe, Together, Groq, OpenRouter)
 
 import { poeApi, PoeMessage } from "./poeApi";
 import { togetherApi, TogetherMessage } from "./togetherApi";
 import { groqApi, GroqMessage } from "./groqApi";
+import { openrouterApi, OpenRouterMessage } from "./openrouterApi";
 
-export type Provider = "poe" | "together" | "groq";
+export type Provider = "poe" | "together" | "groq" | "openrouter";
+
+const OPENROUTER_CACHE_KEY = "openrouter_free_models_cache";
 
 export interface UnifiedMessage {
     role: "user" | "assistant" | "system";
@@ -231,7 +234,200 @@ export const ALL_MODELS: Record<string, ModelInfo> = {
         icon: "Sparkles",
         color: "from-teal-500 to-cyan-500",
     },
+    // OpenRouter Models (Free)
+    "openrouter:nvidia/nemotron-nano-12b-v2-vl:free": {
+        id: "nvidia/nemotron-nano-12b-v2-vl:free",
+        name: "Nvidia Nemotron Nano 12B (Free)",
+        provider: "openrouter",
+        description:
+            "Nvidia's Nemotron Nano 12B model. Free tier with vision capabilities.",
+        speed: "Fast",
+        quality: "High",
+        features: [
+            "Free tier",
+            "Vision capable",
+            "12B parameters",
+            "Fast inference",
+            "Multi-modal",
+        ],
+        icon: "Eye",
+        color: "from-green-500 to-emerald-500",
+    },
+    "openrouter:minimax/minimax-m2:free": {
+        id: "minimax/minimax-m2:free",
+        name: "MiniMax M2 (Free)",
+        provider: "openrouter",
+        description: "MiniMax M2 model. Free tier with great performance.",
+        speed: "Balanced",
+        quality: "High",
+        features: [
+            "Free tier",
+            "Balanced speed",
+            "High quality",
+            "General purpose",
+            "Multi-lingual",
+        ],
+        icon: "Sparkles",
+        color: "from-indigo-500 to-purple-500",
+    },
+    "openrouter:meta-llama/llama-3.2-3b-instruct:free": {
+        id: "meta-llama/llama-3.2-3b-instruct:free",
+        name: "Llama 3.2 3B (Free)",
+        provider: "openrouter",
+        description: "Meta's Llama 3.2 3B. Free tier, instruction-tuned.",
+        speed: "Fast",
+        quality: "Medium",
+        features: [
+            "Free tier",
+            "3B parameters",
+            "Instruction tuned",
+            "Fast responses",
+            "Efficient",
+        ],
+        icon: "Zap",
+        color: "from-blue-500 to-cyan-500",
+    },
+    "openrouter:meta-llama/llama-3.1-8b-instruct:free": {
+        id: "meta-llama/llama-3.1-8b-instruct:free",
+        name: "Llama 3.1 8B (Free)",
+        provider: "openrouter",
+        description: "Meta's Llama 3.1 8B. Free tier with solid performance.",
+        speed: "Balanced",
+        quality: "High",
+        features: [
+            "Free tier",
+            "8B parameters",
+            "Instruction tuned",
+            "Reliable",
+            "Versatile",
+        ],
+        icon: "Flame",
+        color: "from-orange-500 to-red-500",
+    },
+    "openrouter:mistralai/mistral-7b-instruct:free": {
+        id: "mistralai/mistral-7b-instruct:free",
+        name: "Mistral 7B (Free)",
+        provider: "openrouter",
+        description: "Mistral 7B Instruct. Free tier with excellent quality.",
+        speed: "Fast",
+        quality: "High",
+        features: [
+            "Free tier",
+            "7B parameters",
+            "High quality",
+            "Fast inference",
+            "General purpose",
+        ],
+        icon: "Wind",
+        color: "from-violet-500 to-purple-500",
+    },
 };
+
+// Function to load dynamic OpenRouter models from cache (FREE MODELS ONLY)
+function loadDynamicOpenRouterModels(): Record<string, ModelInfo> {
+    try {
+        const cached = localStorage.getItem(OPENROUTER_CACHE_KEY);
+        if (!cached) {
+            console.log("📦 No OpenRouter cache found");
+            return {};
+        }
+
+        interface CachedModel {
+            id: string;
+            name: string;
+            description?: string;
+            context_length?: number | null;
+            pricing?: {
+                prompt: string;
+                completion: string;
+            };
+            architecture?: {
+                input_modalities?: string[];
+            };
+        }
+
+        interface CachedData {
+            models: CachedModel[];
+            timestamp: number;
+        }
+
+        const data = JSON.parse(cached) as CachedData;
+        const models = data.models || [];
+
+        console.log(`📦 Loading ${models.length} FREE models from cache`);
+
+        const dynamicModels: Record<string, ModelInfo> = {};
+        let freeCount = 0;
+
+        models.forEach((model: CachedModel) => {
+            // ONLY load FREE models - double check
+            const isFree =
+                model.id.includes(":free") ||
+                (parseFloat(model.pricing?.prompt || "1") === 0 &&
+                    parseFloat(model.pricing?.completion || "1") === 0);
+
+            if (!isFree) {
+                console.log(`⏭️ Skipping non-free model: ${model.id}`);
+                return;
+            }
+
+            freeCount++;
+            const modelKey = `openrouter:${model.id}`;
+
+            // Determine speed based on context length
+            const speed =
+                !model.context_length || model.context_length < 32000
+                    ? ("Fast" as const)
+                    : model.context_length > 100000
+                      ? ("Slow" as const)
+                      : ("Balanced" as const);
+
+            // Determine quality based on model size
+            const quality =
+                model.id.includes("120b") ||
+                model.id.includes("80b") ||
+                model.id.includes("70b")
+                    ? ("High" as const)
+                    : model.id.includes("3b") || model.id.includes("1b")
+                      ? ("Medium" as const)
+                      : ("High" as const);
+
+            dynamicModels[modelKey] = {
+                id: model.id,
+                name:
+                    model.name ||
+                    model.id.split("/").pop()?.replace(":free", "") ||
+                    model.id,
+                provider: "openrouter",
+                description:
+                    model.description || `Free AI model: ${model.name}`,
+                speed,
+                quality,
+                features: [
+                    "🆓 Free tier",
+                    ...(model.architecture?.input_modalities || []),
+                    model.context_length
+                        ? model.context_length >= 1000000
+                            ? `${(model.context_length / 1000000).toFixed(1)}M ctx`
+                            : `${(model.context_length / 1000).toFixed(0)}K ctx`
+                        : "",
+                ].filter(Boolean),
+                icon: model.architecture?.input_modalities?.includes("image")
+                    ? "Eye"
+                    : "Sparkles",
+                color: "from-green-500 to-emerald-500",
+            };
+        });
+
+        console.log(
+            `✅ Loaded ${freeCount} FREE OpenRouter models for sidebar`,
+        );
+        return dynamicModels;
+    } catch (err) {
+        console.error("❌ Error loading dynamic OpenRouter models:", err);
+        return {};
+    }
+}
 
 class UnifiedAiService {
     async sendMessage(
@@ -283,6 +479,25 @@ class UnifiedAiService {
                 onComplete,
                 onError,
             );
+        } else if (provider === "openrouter") {
+            const openrouterMessages: OpenRouterMessage[] = messages.map(
+                (m) => ({
+                    role: m.role === "assistant" ? "assistant" : m.role,
+                    content: m.content,
+                }),
+            );
+
+            await openrouterApi.sendMessageStream(
+                {
+                    model,
+                    messages: openrouterMessages,
+                    temperature,
+                    max_tokens,
+                },
+                onChunk,
+                onComplete,
+                onError,
+            );
         } else {
             onError(new Error(`Unsupported provider: ${provider}`));
         }
@@ -293,7 +508,7 @@ class UnifiedAiService {
         modelId: string,
         messages: Array<{ role: string; content: string }>,
         maxTokens?: number,
-    ): Promise<{ content: string; metadata?: any }> {
+    ): Promise<{ content: string; metadata?: Record<string, unknown> }> {
         return new Promise((resolve, reject) => {
             let fullContent = "";
 
@@ -319,14 +534,49 @@ class UnifiedAiService {
     }
 
     getAllModels(): ModelInfo[] {
-        return Object.values(ALL_MODELS);
+        // Merge static models with dynamic OpenRouter models
+        const dynamicModels = loadDynamicOpenRouterModels();
+        const allModels = { ...ALL_MODELS, ...dynamicModels };
+        return Object.values(allModels);
     }
 
     getModelsByProvider(provider: Provider): ModelInfo[] {
+        if (provider === "openrouter") {
+            // For OpenRouter, prioritize dynamic FREE models from cache
+            const dynamicModels = loadDynamicOpenRouterModels();
+            const dynamicList = Object.values(dynamicModels);
+
+            // Get static free models
+            const staticModels = Object.values(ALL_MODELS).filter(
+                (m) => m.provider === provider,
+            );
+
+            // If we have dynamic models, use them (they are already filtered as FREE)
+            if (dynamicList.length > 0) {
+                console.log(
+                    `🎯 Using ${dynamicList.length} dynamic FREE models for OpenRouter`,
+                );
+                return dynamicList;
+            }
+
+            // Otherwise fall back to static FREE models
+            console.log(
+                `🎯 Using ${staticModels.length} static FREE models for OpenRouter`,
+            );
+            return staticModels;
+        }
+
         return Object.values(ALL_MODELS).filter((m) => m.provider === provider);
     }
 
     getModelInfo(provider: Provider, modelId: string): ModelInfo | undefined {
+        // Check dynamic models first for OpenRouter
+        if (provider === "openrouter") {
+            const dynamicModels = loadDynamicOpenRouterModels();
+            const dynamicModel = dynamicModels[`${provider}:${modelId}`];
+            if (dynamicModel) return dynamicModel;
+        }
+
         return ALL_MODELS[`${provider}:${modelId}`];
     }
 
@@ -339,6 +589,10 @@ class UnifiedAiService {
             const configured = groqApi.isConfigured();
             console.log("🔍 Groq provider check:", configured);
             return configured;
+        } else if (provider === "openrouter") {
+            const configured = openrouterApi.isConfigured();
+            console.log("🔍 OpenRouter provider check:", configured);
+            return configured;
         }
         return false;
     }
@@ -350,6 +604,10 @@ class UnifiedAiService {
         if (groqApi.isConfigured()) {
             console.log("✅ Adding Groq to available providers");
             providers.push("groq");
+        }
+        if (openrouterApi.isConfigured()) {
+            console.log("✅ Adding OpenRouter to available providers");
+            providers.push("openrouter");
         }
         console.log("📋 Final available providers:", providers);
         return providers;

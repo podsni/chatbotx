@@ -12,6 +12,8 @@ import {
     AlertTriangle,
     Zap,
     Users,
+    Search,
+    Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -72,6 +74,8 @@ export const ChatSidebar = ({
         new Set(["Today"]),
     );
     const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [modelFilter, setModelFilter] = useState<"all" | "free">("all");
 
     useEffect(() => {
         loadSessions();
@@ -196,9 +200,45 @@ export const ChatSidebar = ({
     };
 
     const availableProviders = aiApi.getAvailableProviders();
-    const poeModels = aiApi.getModelsByProvider("poe");
-    const togetherModels = aiApi.getModelsByProvider("together");
-    const groqModels = aiApi.getModelsByProvider("groq");
+
+    // Get all models and apply search/filter
+    const allModels = aiApi.getAllModels();
+    const filteredModels = allModels.filter((model) => {
+        // Search filter
+        const matchesSearch =
+            searchQuery === "" ||
+            model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            model.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            model.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+        // Free filter
+        const matchesFreeFilter =
+            modelFilter === "all" ||
+            (modelFilter === "free" &&
+                (model.features.some(
+                    (f) => f.includes("Free") || f.includes("🆓"),
+                ) ||
+                    model.id.includes(":free")));
+
+        return matchesSearch && matchesFreeFilter;
+    });
+
+    // Group filtered models by provider
+    const poeModels = filteredModels.filter((m) => m.provider === "poe");
+    const togetherModels = filteredModels.filter(
+        (m) => m.provider === "together",
+    );
+    const groqModels = filteredModels.filter((m) => m.provider === "groq");
+    const openrouterModels = filteredModels.filter(
+        (m) => m.provider === "openrouter",
+    );
+
+    // Count free models
+    const freeModelsCount = allModels.filter(
+        (m) =>
+            m.features.some((f) => f.includes("Free") || f.includes("🆓")) ||
+            m.id.includes(":free"),
+    ).length;
 
     const getProviderColor = (provider: Provider) => {
         switch (provider) {
@@ -208,6 +248,8 @@ export const ChatSidebar = ({
                 return "text-purple-400";
             case "groq":
                 return "text-yellow-400";
+            case "openrouter":
+                return "text-green-400";
             default:
                 return "text-gray-400";
         }
@@ -221,6 +263,8 @@ export const ChatSidebar = ({
                 return "bg-purple-500/20 text-purple-300 border-purple-500/30";
             case "groq":
                 return "bg-yellow-500/20 text-yellow-300 border-yellow-500/30";
+            case "openrouter":
+                return "bg-green-500/20 text-green-300 border-green-500/30";
             default:
                 return "bg-gray-500/20 text-gray-300 border-gray-500/30";
         }
@@ -234,6 +278,8 @@ export const ChatSidebar = ({
                 return "Together";
             case "groq":
                 return "Groq";
+            case "openrouter":
+                return "OpenRouter";
             default:
                 return provider;
         }
@@ -246,6 +292,7 @@ export const ChatSidebar = ({
             name: string;
             description: string;
             speed: string;
+            features: string[];
         }>,
         providerName: string,
     ) => {
@@ -257,12 +304,12 @@ export const ChatSidebar = ({
                     onClick={() =>
                         setExpandedProvider(isExpanded ? null : provider)
                     }
-                    className="w-full flex items-center justify-between p-2 rounded hover:bg-sidebar-accent/50 transition-colors"
+                    className="w-full flex items-center justify-between p-1.5 sm:p-2 rounded hover:bg-sidebar-accent/50 transition-colors"
                 >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                         <span
                             className={cn(
-                                "text-xs font-semibold uppercase",
+                                "text-[10px] sm:text-xs font-semibold uppercase truncate",
                                 getProviderColor(provider),
                             )}
                         >
@@ -271,7 +318,7 @@ export const ChatSidebar = ({
                         <Badge
                             variant="outline"
                             className={cn(
-                                "text-[9px] px-1.5 py-0",
+                                "text-[8px] sm:text-[9px] px-1 sm:px-1.5 py-0 flex-shrink-0",
                                 getProviderBadgeColor(provider),
                             )}
                         >
@@ -279,30 +326,44 @@ export const ChatSidebar = ({
                         </Badge>
                     </div>
                     {isExpanded ? (
-                        <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
+                        <ChevronUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground flex-shrink-0" />
                     ) : (
-                        <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                        <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground flex-shrink-0" />
                     )}
                 </button>
 
                 {isExpanded && (
-                    <div className="mt-1 space-y-1 ml-2">
+                    <div className="mt-1 space-y-1 ml-1 sm:ml-2">
                         {models.map((model) => (
                             <button
                                 key={model.id}
                                 onClick={() =>
                                     handleNewChat(provider, model.id)
                                 }
-                                className="w-full text-left p-2 rounded-md hover:bg-sidebar-accent transition-colors group"
+                                className="w-full text-left p-1.5 sm:p-2 rounded-md hover:bg-sidebar-accent transition-colors group border border-transparent hover:border-sidebar-border"
                             >
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-start justify-between gap-2">
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-[11px] font-medium text-sidebar-foreground truncate">
-                                            {model.name}
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <div className="text-[10px] sm:text-[11px] font-medium text-sidebar-foreground truncate">
+                                                {model.name}
+                                            </div>
+                                            {(model.features?.some(
+                                                (f) =>
+                                                    f.includes("Free") ||
+                                                    f.includes("🆓"),
+                                            ) ||
+                                                model.id.includes(":free")) && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="text-[7px] sm:text-[8px] px-1 py-0 bg-green-500/20 text-green-400 border-green-500/30 flex-shrink-0"
+                                                >
+                                                    FREE
+                                                </Badge>
+                                            )}
                                         </div>
-                                        <div className="text-[9px] text-muted-foreground truncate mt-0.5">
-                                            {model.description.substring(0, 50)}
-                                            ...
+                                        <div className="text-[8px] sm:text-[9px] text-muted-foreground line-clamp-2 leading-relaxed">
+                                            {model.description}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
@@ -521,27 +582,23 @@ export const ChatSidebar = ({
                     </ScrollArea>
                 </div>
 
-                <div className="flex-1 overflow-hidden flex flex-col">
-                    <div className="p-3 lg:p-4 border-b border-sidebar-border">
-                        <div className="flex items-center justify-between mb-2">
-                            <h2 className="text-xs lg:text-sm font-medium text-sidebar-foreground">
+                <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                    <div className="p-2 sm:p-3 lg:p-4 border-b border-sidebar-border flex-shrink-0 space-y-2">
+                        {/* Header */}
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xs sm:text-sm font-medium text-sidebar-foreground flex items-center gap-1.5">
                                 <span className="hidden sm:inline">
                                     All AI Models
                                 </span>
                                 <span className="sm:hidden">Models</span>
+                                <Badge
+                                    variant="outline"
+                                    className="text-[8px] sm:text-[9px] px-1 sm:px-1.5 py-0"
+                                >
+                                    {filteredModels.length}
+                                </Badge>
                             </h2>
-                            <Badge
-                                variant="outline"
-                                className="text-[9px] px-1.5 py-0"
-                            >
-                                {aiApi.getAllModels().length}
-                            </Badge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <div className="text-[9px] text-muted-foreground">
-                                {availableProviders.length} providers
-                            </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-1 sm:gap-2">
                                 {onOpenAgentMode && (
                                     <Button
                                         variant="outline"
@@ -570,20 +627,116 @@ export const ChatSidebar = ({
                                 )}
                             </div>
                         </div>
+
+                        {/* Search Input */}
+                        <div className="relative">
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground" />
+                            <Input
+                                placeholder="Search models..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="h-7 sm:h-8 pl-7 sm:pl-8 text-[10px] sm:text-xs bg-sidebar-accent/50 border-sidebar-border"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery("")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Filter Buttons */}
+                        <div className="flex items-center gap-1.5">
+                            <Filter className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
+                            <div className="flex gap-1 flex-1">
+                                <Button
+                                    variant={
+                                        modelFilter === "all"
+                                            ? "default"
+                                            : "outline"
+                                    }
+                                    size="sm"
+                                    onClick={() => setModelFilter("all")}
+                                    className="h-6 text-[9px] sm:text-[10px] px-2 sm:px-3 flex-1"
+                                >
+                                    All
+                                    <Badge
+                                        variant="secondary"
+                                        className="ml-1 text-[8px] px-1 py-0"
+                                    >
+                                        {allModels.length}
+                                    </Badge>
+                                </Button>
+                                <Button
+                                    variant={
+                                        modelFilter === "free"
+                                            ? "default"
+                                            : "outline"
+                                    }
+                                    size="sm"
+                                    onClick={() => setModelFilter("free")}
+                                    className="h-6 text-[9px] sm:text-[10px] px-2 sm:px-3 flex-1"
+                                >
+                                    🆓 Free
+                                    <Badge
+                                        variant="secondary"
+                                        className="ml-1 text-[8px] px-1 py-0"
+                                    >
+                                        {freeModelsCount}
+                                    </Badge>
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Info Text */}
+                        <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                            {availableProviders.length} providers •{" "}
+                            {filteredModels.length} models
+                        </div>
                     </div>
 
-                    <ScrollArea className="flex-1 px-3 lg:px-4 py-2">
-                        {availableProviders.includes("poe") &&
-                            renderProviderSection("poe", poeModels, "Poe AI")}
-                        {availableProviders.includes("together") &&
-                            renderProviderSection(
-                                "together",
-                                togetherModels,
-                                "Together AI",
-                            )}
-                        {availableProviders.includes("groq") &&
-                            renderProviderSection("groq", groqModels, "Groq")}
-                    </ScrollArea>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 pb-4">
+                        {filteredModels.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                                <Search className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                                <p className="text-sm text-muted-foreground">
+                                    No models found
+                                </p>
+                                <p className="text-xs text-muted-foreground/70 mt-1">
+                                    Try a different search or filter
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {poeModels.length > 0 &&
+                                    renderProviderSection(
+                                        "poe",
+                                        poeModels,
+                                        "Poe AI",
+                                    )}
+                                {togetherModels.length > 0 &&
+                                    renderProviderSection(
+                                        "together",
+                                        togetherModels,
+                                        "Together AI",
+                                    )}
+                                {groqModels.length > 0 &&
+                                    renderProviderSection(
+                                        "groq",
+                                        groqModels,
+                                        "Groq",
+                                    )}
+                                {openrouterModels.length > 0 &&
+                                    renderProviderSection(
+                                        "openrouter",
+                                        openrouterModels,
+                                        "OpenRouter (Free)",
+                                    )}
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 <div className="p-3 lg:p-4 border-t border-sidebar-border flex-shrink-0">

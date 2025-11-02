@@ -150,6 +150,25 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
             },
             { id: "zai-org/GLM-4.5-Air-FP8", name: "GLM 4.5 Air FP8" },
         ],
+        openrouter: [
+            {
+                id: "nvidia/nemotron-nano-12b-v2-vl:free",
+                name: "Nvidia Nemotron Nano 12B (Free)",
+            },
+            { id: "minimax/minimax-m2:free", name: "MiniMax M2 (Free)" },
+            {
+                id: "meta-llama/llama-3.2-3b-instruct:free",
+                name: "Llama 3.2 3B (Free)",
+            },
+            {
+                id: "meta-llama/llama-3.1-8b-instruct:free",
+                name: "Llama 3.1 8B (Free)",
+            },
+            {
+                id: "mistralai/mistral-7b-instruct:free",
+                name: "Mistral 7B (Free)",
+            },
+        ],
     };
 
     // Load saved sessions on mount
@@ -1793,6 +1812,11 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                                                 </SelectItem>
                                                                 <SelectItem value="together">
                                                                     Together AI
+                                                                    (Powerful)
+                                                                </SelectItem>
+                                                                <SelectItem value="openrouter">
+                                                                    OpenRouter
+                                                                    (Free)
                                                                 </SelectItem>
                                                             </SelectContent>
                                                         </Select>

@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { DEBUG_MODE, debugLog, debugInfo, debugWarn, debugError } from "@/lib/debug";
+import {
+    DEBUG_MODE,
+    debugLog,
+    debugInfo,
+    debugWarn,
+    debugError,
+} from "@/lib/debug";
 import {
     Send,
     Loader2,
@@ -192,7 +198,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
     };
 
     const loadSession = async (sessionId: string) => {
-        debugInfo('📂', 'Loading session:', sessionId);
+        debugInfo("📂", "Loading session:", sessionId);
         try {
             const session = await chatDB.getAgentSession(sessionId);
             if (!session) return;
@@ -200,14 +206,16 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
             const responses =
                 await chatDB.getAgentResponsesBySession(sessionId);
 
-            debugInfo('📊', 'Loaded responses:', {
+            debugInfo("📊", "Loaded responses:", {
                 sessionId,
                 count: responses.length,
-                responses: responses.map(r => ({
+                responses: responses.map((r) => ({
                     userMsg: r.userMessage.substring(0, 30),
                     responsesCount: r.responses.length,
-                    hasContent: r.responses.every(rr => rr.content && rr.content.length > 0)
-                }))
+                    hasContent: r.responses.every(
+                        (rr) => rr.content && rr.content.length > 0,
+                    ),
+                })),
             });
 
             setCurrentSessionId(sessionId);
@@ -238,7 +246,12 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                 }),
             );
 
-            debugInfo('✓', 'Setting conversation with', conversationHistory.length, 'turns');
+            debugInfo(
+                "✓",
+                "Setting conversation with",
+                conversationHistory.length,
+                "turns",
+            );
             setConversation(conversationHistory);
             setShowSessions(false);
             toast({
@@ -353,6 +366,8 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                 return "border-purple-500 bg-purple-500/10";
             case "groq":
                 return "border-yellow-500 bg-yellow-500/10";
+            case "openrouter":
+                return "border-green-500 bg-green-500/10";
             default:
                 return "border-gray-500 bg-gray-500/10";
         }
@@ -366,6 +381,8 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                 return "bg-purple-500/20 text-purple-300 border-purple-500/30";
             case "groq":
                 return "bg-yellow-500/20 text-yellow-300 border-yellow-500/30";
+            case "openrouter":
+                return "bg-green-500/20 text-green-300 border-green-500/30";
             default:
                 return "bg-gray-500/20 text-gray-300 border-gray-500/30";
         }
@@ -398,11 +415,11 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
 
     const handleSendMessage = async () => {
         if (!input.trim() || selectedModels.length === 0) return;
-        
+
         // Ensure we have a session
         let sessionId = currentSessionId;
         if (!sessionId) {
-            debugInfo('⚡', 'No session, creating new one...');
+            debugInfo("⚡", "No session, creating new one...");
             const timestamp = Date.now();
             const newSession: AgentSession = {
                 id: `agent-${timestamp}`,
@@ -410,14 +427,14 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                 timestamp,
                 models: selectedModels,
             };
-            
+
             try {
                 await chatDB.createAgentSession(newSession);
                 sessionId = newSession.id;
                 setCurrentSessionId(sessionId);
                 setSessionTitle(newSession.title);
                 await loadSessions();
-                debugInfo('✓', 'Session created:', sessionId);
+                debugInfo("✓", "Session created:", sessionId);
             } catch (error) {
                 console.error("Error creating session:", error);
                 toast({
@@ -434,11 +451,11 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
         setInput("");
 
         const turnId = `turn-${Date.now()}`;
-        
-        debugInfo('🚀', 'Starting message send:', {
+
+        debugInfo("🚀", "Starting message send:", {
             sessionId,
             models: selectedModels.length,
-            hasSession: !!sessionId
+            hasSession: !!sessionId,
         });
         const contextMessages = buildContextMessages(userMessage);
 
@@ -452,7 +469,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                 isLoading: true,
             }),
         );
-        
+
         // Collect final responses for database save
         const finalResponsesMap = new Map<number, ModelResponse>();
 
@@ -527,12 +544,16 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                             isLoading: false,
                             metadata: metadata,
                         });
-                        
-                        debugInfo('✓', `Collected response ${index + 1}/${selectedModels.length}:`, {
-                            provider: model.provider,
-                            contentLength: content.length,
-                            model: model.modelName
-                        });
+
+                        debugInfo(
+                            "✓",
+                            `Collected response ${index + 1}/${selectedModels.length}:`,
+                            {
+                                provider: model.provider,
+                                contentLength: content.length,
+                                model: model.modelName,
+                            },
+                        );
 
                         setConversation((prev) =>
                             prev.map((turn) =>
@@ -608,10 +629,10 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
         try {
             if (sessionId && finalResponsesMap.size > 0) {
                 // Wait a bit to ensure all state updates are done
-                await new Promise(resolve => setTimeout(resolve, 200));
-                
+                await new Promise((resolve) => setTimeout(resolve, 200));
+
                 const finalResponses = Array.from(finalResponsesMap.values());
-                
+
                 const agentResponse: AgentResponse = {
                     id: turnId,
                     sessionId: sessionId,
@@ -627,16 +648,18 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                     })),
                 };
 
-                debugInfo('💾', 'Saving agent response:', {
+                debugInfo("💾", "Saving agent response:", {
                     sessionId: sessionId,
                     turnId,
                     responses: finalResponses.length,
-                    hasContent: finalResponses.every(r => r.content.length > 0)
+                    hasContent: finalResponses.every(
+                        (r) => r.content.length > 0,
+                    ),
                 });
 
                 await chatDB.addAgentResponse(agentResponse);
-                
-                debugInfo('✓', 'Agent response saved successfully');
+
+                debugInfo("✓", "Agent response saved successfully");
 
                 // Update session lastMessage
                 const session = await chatDB.getAgentSession(sessionId);
@@ -644,10 +667,10 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                     session.lastMessage = userMessage.substring(0, 50);
                     session.timestamp = Date.now();
                     await chatDB.updateAgentSession(session);
-                    debugInfo('✓', 'Session updated');
+                    debugInfo("✓", "Session updated");
                 }
             } else {
-                debugWarn('⚠️ No session or responses to save');
+                debugWarn("⚠️ No session or responses to save");
             }
         } catch (error) {
             console.error("❌ Error saving to database:", error);
@@ -731,16 +754,23 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                     variant="ghost"
                                     size="sm"
                                     onClick={async () => {
-                                        console.log('=== AGENT DB DEBUG ===');
-                                        const allSessions = await chatDB.getAllAgentSessions();
-                                        console.log('Total sessions:', allSessions.length);
+                                        console.log("=== AGENT DB DEBUG ===");
+                                        const allSessions =
+                                            await chatDB.getAllAgentSessions();
+                                        console.log(
+                                            "Total sessions:",
+                                            allSessions.length,
+                                        );
                                         for (const s of allSessions) {
-                                            const resp = await chatDB.getAgentResponsesBySession(s.id);
+                                            const resp =
+                                                await chatDB.getAgentResponsesBySession(
+                                                    s.id,
+                                                );
                                             console.log(`Session: ${s.title}`, {
                                                 id: s.id,
                                                 models: s.models.length,
                                                 responses: resp.length,
-                                                data: resp
+                                                data: resp,
                                             });
                                         }
                                     }}

@@ -246,6 +246,54 @@ All colors MUST be HSL.
         -webkit-overflow-scrolling: touch;
     }
 
+    /* Custom scrollbar styling for webkit browsers */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: hsl(var(--sidebar-background));
+        border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: hsl(var(--muted));
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: hsl(var(--muted-foreground));
+    }
+
+    /* Thin scrollbar for mobile */
+    @media (max-width: 768px) {
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+    }
+
+    /* Firefox scrollbar */
+    .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: hsl(var(--muted)) hsl(var(--sidebar-background));
+    }
+
+    /* Ensure proper overflow handling */
+    .overflow-y-scroll,
+    .overflow-auto {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    /* Fix flexbox overflow issues */
+    .flex-1 {
+        min-height: 0;
+        min-width: 0;
+    }
+
     /* Active state for touch */
     .active-scale {
         transition: transform 0.1s ease;

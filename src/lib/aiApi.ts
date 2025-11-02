@@ -9,6 +9,7 @@ export type Provider = "poe" | "together" | "groq" | "openrouter";
 
 const OPENROUTER_CACHE_KEY = "openrouter_free_models_cache";
 const TOGETHER_CACHE_KEY = "together_chat_models_cache";
+const GROQ_CACHE_KEY = "groq_chat_models_cache";
 
 export interface UnifiedMessage {
     role: "user" | "assistant" | "system";
@@ -430,6 +431,88 @@ function loadDynamicOpenRouterModels(): Record<string, ModelInfo> {
     }
 }
 
+// Function to load dynamic Groq models from cache (ALL CHAT MODELS - FREE TIER)
+function loadDynamicGroqModels(): Record<string, ModelInfo> {
+    try {
+        const cached = localStorage.getItem(GROQ_CACHE_KEY);
+        if (!cached) {
+            console.log("📦 No Groq cache found");
+            return {};
+        }
+
+        interface GroqCachedModel {
+            id: string;
+            object: string;
+            created: number;
+            owned_by: string;
+            isFree: boolean;
+        }
+
+        interface CachedData {
+            models: GroqCachedModel[];
+            timestamp: number;
+        }
+
+        const data = JSON.parse(cached) as CachedData;
+        const models = data.models || [];
+
+        console.log(`📦 Loading ${models.length} Groq chat models from cache`);
+
+        const dynamicModels: Record<string, ModelInfo> = {};
+
+        models.forEach((model: GroqCachedModel) => {
+            const modelKey = `groq:${model.id}`;
+
+            // Determine speed - Groq is always fast!
+            const speed = "Fast" as const;
+
+            // Determine quality based on model name
+            const quality =
+                model.id.includes("405b") ||
+                model.id.includes("70b") ||
+                model.id.includes("mixtral")
+                    ? ("High" as const)
+                    : ("High" as const);
+
+            // Build features array
+            const features: string[] = [
+                "🆓 Free",
+                "⚡ Lightning fast",
+                "🚀 Low latency",
+                "Groq LPU™",
+            ];
+
+            // Extract model name
+            const displayName =
+                model.id
+                    .split("/")
+                    .pop()
+                    ?.replace(/-/g, " ")
+                    .replace(/\b\w/g, (l) => l.toUpperCase()) || model.id;
+
+            dynamicModels[modelKey] = {
+                id: model.id,
+                name: displayName,
+                provider: "groq",
+                description: `${model.owned_by} model - Ultra-fast inference with Groq's LPU™ engine. Free tier available.`,
+                speed,
+                quality,
+                features,
+                icon: "Zap",
+                color: "from-yellow-500 to-orange-500",
+            };
+        });
+
+        console.log(
+            `✅ Loaded ${models.length} Groq models from cache (all free)`,
+        );
+        return dynamicModels;
+    } catch (error) {
+        console.error("❌ Error loading Groq dynamic models:", error);
+        return {};
+    }
+}
+
 // Function to load dynamic Together AI models from cache (ALL CHAT MODELS)
 function loadDynamicTogetherModels(): Record<string, ModelInfo> {
     try {
@@ -652,13 +735,15 @@ class UnifiedAiService {
     }
 
     getAllModels(): ModelInfo[] {
-        // Merge static models with dynamic OpenRouter and Together models
+        // Merge static models with dynamic OpenRouter, Together, and Groq models
         const dynamicOpenRouter = loadDynamicOpenRouterModels();
         const dynamicTogether = loadDynamicTogetherModels();
+        const dynamicGroq = loadDynamicGroqModels();
         const allModels = {
             ...ALL_MODELS,
             ...dynamicOpenRouter,
             ...dynamicTogether,
+            ...dynamicGroq,
         };
         return Object.values(allModels);
     }
@@ -714,6 +799,31 @@ class UnifiedAiService {
             return staticModels;
         }
 
+        if (provider === "groq") {
+            // For Groq, prioritize dynamic models from cache
+            const dynamicModels = loadDynamicGroqModels();
+            const dynamicList = Object.values(dynamicModels);
+
+            // Get static models
+            const staticModels = Object.values(ALL_MODELS).filter(
+                (m) => m.provider === provider,
+            );
+
+            // If we have dynamic models, use them
+            if (dynamicList.length > 0) {
+                console.log(
+                    `🎯 Using ${dynamicList.length} dynamic chat models for Groq`,
+                );
+                return dynamicList;
+            }
+
+            // Otherwise fall back to static models
+            console.log(
+                `🎯 Using ${staticModels.length} static models for Groq`,
+            );
+            return staticModels;
+        }
+
         return Object.values(ALL_MODELS).filter((m) => m.provider === provider);
     }
 
@@ -728,6 +838,13 @@ class UnifiedAiService {
         // Check dynamic models first for Together
         if (provider === "together") {
             const dynamicModels = loadDynamicTogetherModels();
+            const dynamicModel = dynamicModels[`${provider}:${modelId}`];
+            if (dynamicModel) return dynamicModel;
+        }
+
+        // Check dynamic models first for Groq
+        if (provider === "groq") {
+            const dynamicModels = loadDynamicGroqModels();
             const dynamicModel = dynamicModels[`${provider}:${modelId}`];
             if (dynamicModel) return dynamicModel;
         }

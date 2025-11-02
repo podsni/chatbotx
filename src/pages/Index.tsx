@@ -3,6 +3,7 @@ import { ChatSidebar } from "@/components/ChatSidebar";
 import { ChatArea } from "@/components/ChatArea";
 import { AgentMode } from "@/components/AgentMode";
 import { ASSDebateMode } from "@/components/ASSDebateMode";
+import { CouncilMode } from "@/components/CouncilMode";
 import { chatDB, Session } from "@/lib/db";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -15,7 +16,7 @@ import {
 import { ModelSelector } from "@/components/ModelSelector";
 import { Provider, aiApi } from "@/lib/aiApi";
 import { Button } from "@/components/ui/button";
-import { Zap, Users } from "lucide-react";
+import { Zap, Users, Sparkles } from "lucide-react";
 
 const Index = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -31,6 +32,7 @@ const Index = () => {
     const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
     const [showAgentMode, setShowAgentMode] = useState(false);
     const [showASSDebateMode, setShowASSDebateMode] = useState(false);
+    const [showCouncilMode, setShowCouncilMode] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     const { toast } = useToast();
 
@@ -172,24 +174,51 @@ const Index = () => {
                 onNewSession={handleNewSession}
                 onOpenAgentMode={() => setShowAgentMode(true)}
                 onOpenASSDebateMode={() => setShowASSDebateMode(true)}
+                onOpenCouncilMode={() => setShowCouncilMode(true)}
             />
             <div className="flex-1 flex flex-col relative">
-                <ChatArea
-                    onMenuClick={() => setSidebarOpen(true)}
-                    sessionId={currentSessionId}
-                    modelName={currentModelName}
-                    provider={currentProvider}
-                />
+                {!showCouncilMode ? (
+                    <>
+                        <ChatArea
+                            onMenuClick={() => setSidebarOpen(true)}
+                            sessionId={currentSessionId}
+                            modelName={currentModelName}
+                            provider={currentProvider}
+                        />
 
-                {/* Agent Mode Floating Button */}
-                <Button
-                    onClick={() => setShowAgentMode(true)}
-                    className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all z-40 bg-gradient-to-br from-primary to-accent hover:scale-110 active:scale-95 animate-pulse hover:animate-none"
-                    size="icon"
-                    title="Agent Mode - Multi-Model Comparison"
-                >
-                    <Zap className="w-6 h-6 fill-current" />
-                </Button>
+                        {/* Floating Action Buttons */}
+                        <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+                            {/* Council Mode Button */}
+                            <Button
+                                onClick={() => setShowCouncilMode(true)}
+                                className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-purple-600 to-pink-600 hover:scale-110 active:scale-95"
+                                size="icon"
+                                title="Council-Hades - Multi-Agent Collective Intelligence"
+                            >
+                                <Sparkles className="w-6 h-6" />
+                            </Button>
+
+                            {/* Agent Mode Button */}
+                            <Button
+                                onClick={() => setShowAgentMode(true)}
+                                className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-primary to-accent hover:scale-110 active:scale-95 animate-pulse hover:animate-none"
+                                size="icon"
+                                title="Agent Mode - Multi-Model Comparison"
+                            >
+                                <Zap className="w-6 h-6 fill-current" />
+                            </Button>
+                        </div>
+                    </>
+                ) : (
+                    <CouncilMode
+                        onBack={() => setShowCouncilMode(false)}
+                        availableModels={aiApi.getAllModels().map((m) => ({
+                            id: m.id,
+                            name: m.name,
+                            provider: m.provider,
+                        }))}
+                    />
+                )}
             </div>
 
             {/* Agent Mode Dialog */}
@@ -202,6 +231,8 @@ const Index = () => {
                 isOpen={showASSDebateMode}
                 onClose={() => setShowASSDebateMode(false)}
             />
+
+            {/* Note: CouncilMode is rendered inline above, not as a dialog */}
 
             {/* Welcome Dialog for first time users */}
             <Dialog

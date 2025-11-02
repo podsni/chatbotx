@@ -2,6 +2,59 @@
 
 All notable changes to ChatBotX will be documented in this file.
 
+## [1.2.0] - 2024-12-XX
+
+### 🎉 Major Updates
+
+**Status**: Production Ready ✅
+
+---
+
+## 🆕 Added
+
+### Council-Hades: Multi-Agent Collective Intelligence System
+- ✅ **Revolutionary Deliberation Mode**
+  - Five distinct AI agents with unique perspectives and expertise
+  - Structured six-stage deliberation process
+  - Multi-dimensional voting system (Logic, Feasibility, Safety, Benefit, Ethics)
+  - Four operating modes: Quick, Deliberative, Ethical, Builder
+  - Ethics veto system to protect moral principles
+  - Real-time progress tracking and visualization
+  - Comprehensive decision documentation with reasoning
+  - Self-reflection capability for continuous improvement
+
+- ✅ **The Five Council Agents**
+  - 🔬 **The Analyst**: Logic, structure, and rationality
+  - 🔨 **The Builder**: Action, reality, and concrete steps
+  - ⚖️ **The Strategist**: Morality, ethics, and long-term consequences (with veto power)
+  - 🔍 **The Auditor**: Skepticism, validation, and scrutiny
+  - 🌟 **The Moderator**: Collective consciousness and balance
+
+- ✅ **Advanced Features**
+  - Weighted voting with three strategies (Equal, Adaptive, Contextual)
+  - Context-aware agent importance based on question type
+  - Minority opinion protection and documentation
+  - Consensus scoring (0-10) for decision confidence
+  - Risk identification with mitigation strategies
+  - Transparent reasoning for all decisions
+
+- ✅ **User Interface**
+  - Full-screen Council interface with tab navigation
+  - Setup tab: Question input, mode selection, model selection
+  - Agents tab: Beautiful agent profile cards with gradients
+  - Process tab: Real-time progress log during deliberation
+  - Debate tab: Complete debate visualization with voting results
+  - Decision tab: Final decision with consensus meter and recommendations
+  - Purple/pink gradient theming for distinct visual identity
+  - New Sparkles button for quick access
+
+- ✅ **Documentation**
+  - `COUNCIL_HADES_GUIDE.md`: Comprehensive English guide (490 lines)
+  - `PANDUAN_COUNCIL_HADES.md`: Complete Indonesian translation (452 lines)
+  - `COUNCIL_HADES_IMPLEMENTATION.md`: Technical implementation summary
+
+---
+
 ## [1.1.0] - 2024-12-XX
 
 ### 🎉 Major Updates

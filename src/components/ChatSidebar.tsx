@@ -13,6 +13,7 @@ import {
     Zap,
     Users,
     Search,
+    Sparkles,
     Filter,
     DollarSign,
     TrendingDown,
@@ -57,6 +58,7 @@ interface ChatSidebarProps {
     onNewSession?: (provider: Provider, modelId: string) => void;
     onOpenAgentMode?: () => void;
     onOpenASSDebateMode?: () => void;
+    onOpenCouncilMode?: () => void;
 }
 
 interface GroupedSessions {
@@ -72,6 +74,7 @@ export const ChatSidebar = ({
     onNewSession,
     onOpenAgentMode,
     onOpenASSDebateMode,
+    onOpenCouncilMode,
 }: ChatSidebarProps) => {
     const [sessions, setSessions] = useState<Session[]>([]);
     const [ragEnabled, setRagEnabled] = useState(true);
@@ -731,6 +734,19 @@ export const ChatSidebar = ({
                                             </Badge>
                                         </h2>
                                         <div className="flex gap-1 sm:gap-2">
+                                            {onOpenCouncilMode && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={onOpenCouncilMode}
+                                                    className="h-7 text-[10px] lg:text-xs gap-1 bg-gradient-to-r from-purple-600/10 to-pink-600/10 hover:from-purple-600/20 hover:to-pink-600/20 border-purple-500/30"
+                                                >
+                                                    <Sparkles className="w-3 h-3" />
+                                                    <span className="hidden sm:inline">
+                                                        Council
+                                                    </span>
+                                                </Button>
+                                            )}
                                             {onOpenAgentMode && (
                                                 <Button
                                                     variant="outline"

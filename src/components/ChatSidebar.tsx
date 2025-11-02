@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { chatDB, Session } from "@/lib/db";
@@ -74,7 +73,6 @@ export const ChatSidebar = ({
     onOpenASSDebateMode,
 }: ChatSidebarProps) => {
     const [sessions, setSessions] = useState<Session[]>([]);
-    const [ragEnabled, setRagEnabled] = useState(true);
     const [expandedProvider, setExpandedProvider] = useState<Provider | null>(
         "poe",
     );
@@ -364,12 +362,12 @@ export const ChatSidebar = ({
                     onClick={() =>
                         setExpandedProvider(isExpanded ? null : provider)
                     }
-                    className="w-full flex items-center justify-between p-1.5 sm:p-2 rounded hover:bg-sidebar-accent/50 transition-colors"
+                    className="w-full flex items-center justify-between p-2 sm:p-2 rounded hover:bg-sidebar-accent/50 transition-colors"
                 >
-                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                    <div className="flex items-center gap-2 sm:gap-2 min-w-0">
                         <span
                             className={cn(
-                                "text-[10px] sm:text-xs font-semibold uppercase truncate",
+                                "text-xs sm:text-xs font-semibold uppercase truncate",
                                 getProviderColor(provider),
                             )}
                         >
@@ -378,7 +376,7 @@ export const ChatSidebar = ({
                         <Badge
                             variant="outline"
                             className={cn(
-                                "text-[8px] sm:text-[9px] px-1 sm:px-1.5 py-0 flex-shrink-0",
+                                "text-[9px] sm:text-[9px] px-1.5 sm:px-1.5 py-0 flex-shrink-0",
                                 getProviderBadgeColor(provider),
                             )}
                         >
@@ -386,26 +384,26 @@ export const ChatSidebar = ({
                         </Badge>
                     </div>
                     {isExpanded ? (
-                        <ChevronUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground flex-shrink-0" />
+                        <ChevronUp className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-muted-foreground flex-shrink-0" />
                     ) : (
-                        <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground flex-shrink-0" />
+                        <ChevronDown className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-muted-foreground flex-shrink-0" />
                     )}
                 </button>
 
                 {isExpanded && (
-                    <div className="mt-1 space-y-1 ml-1 sm:ml-2">
+                    <div className="mt-1 space-y-1.5 ml-2 sm:ml-2">
                         {enhancedModels.map((model: any) => (
                             <button
                                 key={model.id}
                                 onClick={() =>
                                     handleNewChat(provider, model.id)
                                 }
-                                className="w-full text-left p-1.5 sm:p-2 rounded-md hover:bg-sidebar-accent transition-colors group border border-transparent hover:border-sidebar-border"
+                                className="w-full text-left p-2 sm:p-2 rounded-md hover:bg-sidebar-accent transition-colors group border border-transparent hover:border-sidebar-border"
                             >
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1 mb-1">
-                                            <div className="text-[10px] sm:text-[11px] font-medium text-sidebar-foreground truncate">
+                                            <div className="text-[11px] sm:text-[11px] font-medium text-sidebar-foreground truncate">
                                                 {model.name}
                                             </div>
                                             {(model.features?.some(
@@ -416,13 +414,13 @@ export const ChatSidebar = ({
                                                 model.id.includes(":free")) && (
                                                 <Badge
                                                     variant="outline"
-                                                    className="text-[7px] sm:text-[8px] px-1 py-0 bg-green-500/20 text-green-400 border-green-500/30 flex-shrink-0"
+                                                    className="text-[8px] sm:text-[8px] px-1 py-0 bg-green-500/20 text-green-400 border-green-500/30 flex-shrink-0"
                                                 >
                                                     FREE
                                                 </Badge>
                                             )}
                                         </div>
-                                        <div className="text-[8px] sm:text-[9px] text-muted-foreground line-clamp-2 leading-relaxed">
+                                        <div className="text-[9px] sm:text-[9px] text-muted-foreground line-clamp-2 leading-relaxed">
                                             {model.description}
                                         </div>
                                         {/* Show pricing for Together models */}
@@ -432,7 +430,7 @@ export const ChatSidebar = ({
                                                     {model.isFree ? (
                                                         <Badge
                                                             variant="outline"
-                                                            className="text-[7px] px-1 py-0 bg-green-500/10 text-green-400 border-green-500/30"
+                                                            className="text-[8px] px-1 py-0 bg-green-500/10 text-green-400 border-green-500/30"
                                                         >
                                                             💚 Free
                                                         </Badge>
@@ -440,7 +438,7 @@ export const ChatSidebar = ({
                                                         <>
                                                             <Badge
                                                                 variant="outline"
-                                                                className="text-[7px] px-1 py-0 bg-blue-500/10 text-blue-400 border-blue-500/30"
+                                                                className="text-[8px] px-1 py-0 bg-blue-500/10 text-blue-400 border-blue-500/30"
                                                             >
                                                                 ⬆️{" "}
                                                                 {formatPrice(
@@ -451,7 +449,7 @@ export const ChatSidebar = ({
                                                             </Badge>
                                                             <Badge
                                                                 variant="outline"
-                                                                className="text-[7px] px-1 py-0 bg-blue-500/10 text-blue-400 border-blue-500/30"
+                                                                className="text-[8px] px-1 py-0 bg-blue-500/10 text-blue-400 border-blue-500/30"
                                                             >
                                                                 ⬇️{" "}
                                                                 {formatPrice(
@@ -472,7 +470,7 @@ export const ChatSidebar = ({
                                                     ? "default"
                                                     : "secondary"
                                             }
-                                            className="text-[8px] px-1 py-0"
+                                            className="text-[9px] px-1.5 py-0.5"
                                         >
                                             {model.speed}
                                         </Badge>
@@ -764,14 +762,14 @@ export const ChatSidebar = ({
 
                                     {/* Search Input */}
                                     <div className="relative">
-                                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground" />
+                                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-3.5 sm:w-3.5 text-muted-foreground" />
                                         <Input
                                             placeholder="Search models..."
                                             value={searchQuery}
                                             onChange={(e) =>
                                                 setSearchQuery(e.target.value)
                                             }
-                                            className="h-7 sm:h-8 pl-7 sm:pl-8 text-[10px] sm:text-xs bg-sidebar-accent/50 border-sidebar-border"
+                                            className="h-9 sm:h-8 pl-8 sm:pl-8 text-xs sm:text-xs bg-sidebar-accent/50 border-sidebar-border"
                                         />
                                         {searchQuery && (
                                             <button
@@ -780,15 +778,15 @@ export const ChatSidebar = ({
                                                 }
                                                 className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                             >
-                                                <X className="h-3 w-3" />
+                                                <X className="h-4 w-4" />
                                             </button>
                                         )}
                                     </div>
 
                                     {/* Filter Buttons */}
                                     <div className="flex items-center gap-1.5">
-                                        <Filter className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
-                                        <div className="flex gap-1 flex-1">
+                                        <Filter className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
+                                        <div className="flex gap-1.5 flex-1">
                                             <Button
                                                 variant={
                                                     modelFilter === "all"
@@ -799,12 +797,12 @@ export const ChatSidebar = ({
                                                 onClick={() =>
                                                     setModelFilter("all")
                                                 }
-                                                className="h-6 text-[9px] sm:text-[10px] px-2 sm:px-3 flex-1"
+                                                className="h-8 text-[10px] sm:text-[10px] px-3 sm:px-3 flex-1"
                                             >
                                                 All
                                                 <Badge
                                                     variant="secondary"
-                                                    className="ml-1 text-[8px] px-1 py-0"
+                                                    className="ml-1 text-[9px] px-1 py-0"
                                                 >
                                                     {allModels.length}
                                                 </Badge>
@@ -819,12 +817,12 @@ export const ChatSidebar = ({
                                                 onClick={() =>
                                                     setModelFilter("free")
                                                 }
-                                                className="h-6 text-[9px] sm:text-[10px] px-2 sm:px-3 flex-1"
+                                                className="h-8 text-[10px] sm:text-[10px] px-3 sm:px-3 flex-1"
                                             >
                                                 🆓 Free
                                                 <Badge
                                                     variant="secondary"
-                                                    className="ml-1 text-[8px] px-1 py-0"
+                                                    className="ml-1 text-[9px] px-1 py-0"
                                                 >
                                                     {freeModelsCount}
                                                 </Badge>
@@ -833,7 +831,7 @@ export const ChatSidebar = ({
                                     </div>
 
                                     {/* Info Text */}
-                                    <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                                    <div className="text-[9px] sm:text-[9px] text-muted-foreground">
                                         {availableProviders.length} providers •{" "}
                                         {filteredModels.length} models
                                     </div>
@@ -841,8 +839,8 @@ export const ChatSidebar = ({
                                     {/* Price Filter (for Together AI) */}
                                     {togetherModels.length > 0 && (
                                         <div className="flex items-center gap-1.5">
-                                            <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-purple-400 flex-shrink-0" />
-                                            <div className="flex gap-1 flex-1 overflow-x-auto">
+                                            <DollarSign className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-purple-400 flex-shrink-0" />
+                                            <div className="flex gap-1.5 flex-1 overflow-x-auto">
                                                 <Button
                                                     variant={
                                                         priceFilter === "all"
@@ -853,7 +851,7 @@ export const ChatSidebar = ({
                                                     onClick={() =>
                                                         setPriceFilter("all")
                                                     }
-                                                    className="h-6 text-[9px] sm:text-[10px] px-2 flex-shrink-0"
+                                                    className="h-8 text-[10px] sm:text-[10px] px-3 flex-shrink-0"
                                                 >
                                                     All
                                                 </Button>
@@ -867,7 +865,7 @@ export const ChatSidebar = ({
                                                     onClick={() =>
                                                         setPriceFilter("free")
                                                     }
-                                                    className="h-6 text-[9px] sm:text-[10px] px-2 flex-shrink-0"
+                                                    className="h-8 text-[10px] sm:text-[10px] px-3 flex-shrink-0"
                                                 >
                                                     🆓
                                                 </Button>
@@ -884,9 +882,9 @@ export const ChatSidebar = ({
                                                             "cheapest",
                                                         )
                                                     }
-                                                    className="h-6 text-[9px] sm:text-[10px] px-2 flex-shrink-0"
+                                                    className="h-8 text-[10px] sm:text-[10px] px-3 flex-shrink-0"
                                                 >
-                                                    <TrendingDown className="h-3 w-3" />
+                                                    <TrendingDown className="h-4 w-4" />
                                                 </Button>
                                                 <Button
                                                     variant={
@@ -901,9 +899,9 @@ export const ChatSidebar = ({
                                                             "expensive",
                                                         )
                                                     }
-                                                    className="h-6 text-[9px] sm:text-[10px] px-2 flex-shrink-0"
+                                                    className="h-8 text-[10px] sm:text-[10px] px-3 flex-shrink-0"
                                                 >
-                                                    <TrendingUp className="h-3 w-3" />
+                                                    <TrendingUp className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         </div>
@@ -971,43 +969,6 @@ export const ChatSidebar = ({
                             </div>
                         </TabsContent>
                     </Tabs>
-                </div>
-
-                <div className="p-3 lg:p-4 border-t border-sidebar-border flex-shrink-0">
-                    <div className="flex items-center justify-between mb-2 lg:mb-3">
-                        <h2 className="text-xs lg:text-sm font-medium text-sidebar-foreground">
-                            RAG
-                        </h2>
-                        <Switch
-                            checked={ragEnabled}
-                            onCheckedChange={setRagEnabled}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <div className="flex gap-1.5 lg:gap-2">
-                            <Input
-                                placeholder="Enter directory path"
-                                className="text-[10px] lg:text-xs bg-sidebar-accent border-sidebar-border min-w-0"
-                            />
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                className="text-[10px] lg:text-xs px-2 lg:px-3 flex-shrink-0"
-                            >
-                                Add
-                            </Button>
-                        </div>
-
-                        <div className="space-y-1 mt-2 lg:mt-3">
-                            <div className="p-2 rounded bg-sidebar-accent text-[10px] lg:text-xs text-sidebar-foreground truncate">
-                                contacts.txt - 7326 bytes
-                            </div>
-                            <div className="p-2 rounded bg-sidebar-accent text-[10px] lg:text-xs text-sidebar-foreground truncate">
-                                indexed_directories.json - 2 bytes
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 

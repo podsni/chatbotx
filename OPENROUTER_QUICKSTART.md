@@ -4,7 +4,7 @@
 
 API key OpenRouter sudah dikonfigurasi di file `.env`:
 ```
-VITE_OPENROUTER_API_KEY=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
+VITE_OPENROUTER_API_KEY=sk-or-v1-your-api-key-here
 ```
 
 ## 📱 Cara Menggunakan (Mobile & Desktop)
@@ -171,7 +171,7 @@ npm run dev
 // Browser DevTools → Console
 🔍 Environment Variables Check:
 OPENROUTER: ✅
-✅ OPENROUTER KEY LOADED: sk-or-v1-47947...
+✅ OPENROUTER KEY LOADED: sk-or-v1-xxxxx...
 🔄 Fetching OpenRouter models...
 ✅ Found 15 FREE models
 ```
@@ -227,7 +227,7 @@ location.reload();
 cat .env | grep OPENROUTER
 
 # Expected output:
-VITE_OPENROUTER_API_KEY=sk-or-v1-479470...
+VITE_OPENROUTER_API_KEY=sk-or-v1-your-api-key-here
 ```
 
 ### Check Console Logs:

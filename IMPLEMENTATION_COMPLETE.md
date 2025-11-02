@@ -95,7 +95,7 @@ Berhasil mengintegrasikan **OpenRouter** ke ChatBotX dengan fitur:
 
 API key sudah ditambahkan ke `.env`:
 ```bash
-VITE_OPENROUTER_API_KEY=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
+VITE_OPENROUTER_API_KEY=sk-or-v1-your-api-key-here
 ```
 
 Optional settings:

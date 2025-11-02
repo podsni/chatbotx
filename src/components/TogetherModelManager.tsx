@@ -91,7 +91,7 @@ export function TogetherModelManager() {
         return length.toString();
     };
 
-    const getCostColor = (model: typeof models[0]) => {
+    const getCostColor = (model: (typeof models)[0]) => {
         if (model.isFree) return "text-green-400";
         const totalCost = model.pricing.input + model.pricing.output;
         if (totalCost < 0.5) return "text-blue-400";
@@ -118,7 +118,7 @@ export function TogetherModelManager() {
                             </Badge>
                         </h3>
                         <p className="text-xs text-slate-400 mt-0.5">
-                            Chat models • Auto-updated every 24h
+                            Serverless chat models • Auto-updated every 24h
                         </p>
                     </div>
                 </div>
@@ -157,7 +157,7 @@ export function TogetherModelManager() {
                     <span className="text-xs sm:text-sm text-slate-300">
                         {error
                             ? "Error loading"
-                            : `${totalCount} models (${freeCount} free, ${paidCount} paid)`}
+                            : `${totalCount} serverless models (${freeCount} free)`}
                     </span>
                 </div>
                 <span className="text-[10px] sm:text-xs text-slate-500">
@@ -364,6 +364,22 @@ export function TogetherModelManager() {
 
             {/* Info Tips - Mobile Optimized */}
             <div className="space-y-2">
+                <div className="p-2.5 sm:p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                    <p className="text-[10px] sm:text-xs text-yellow-300 leading-relaxed">
+                        🚀{" "}
+                        <strong className="font-semibold">
+                            Serverless Only:
+                        </strong>{" "}
+                        Only serverless models are shown.
+                        <span className="hidden sm:inline">
+                            {" "}
+                            Models requiring dedicated endpoints (like
+                            "-Reference" models) are filtered out to prevent
+                            errors.
+                        </span>
+                    </p>
+                </div>
+
                 <div className="p-2.5 sm:p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
                     <p className="text-[10px] sm:text-xs text-blue-300 leading-relaxed">
                         💡 <strong className="font-semibold">Tip:</strong>{" "}
@@ -379,11 +395,10 @@ export function TogetherModelManager() {
                     <div className="p-2.5 sm:p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                         <p className="text-[10px] sm:text-xs text-green-300 leading-relaxed">
                             🏆{" "}
-                            <strong className="font-semibold">
-                                Cheapest:
-                            </strong>{" "}
+                            <strong className="font-semibold">Cheapest:</strong>{" "}
                             {cheapestModel.display_name} (
-                            {formatPrice(cheapestModel.pricing.input)} input, {formatPrice(cheapestModel.pricing.output)} output)
+                            {formatPrice(cheapestModel.pricing.input)} input,{" "}
+                            {formatPrice(cheapestModel.pricing.output)} output)
                         </p>
                     </div>
                 )}

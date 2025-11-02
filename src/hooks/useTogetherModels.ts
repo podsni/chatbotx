@@ -18,6 +18,7 @@ export interface TogetherModel {
     link: string;
     pricing: TogetherModelPricing;
     isFree: boolean;
+    access?: string; // "serverless" or "endpoint"
 }
 
 interface CachedData {
@@ -28,6 +29,32 @@ interface CachedData {
 const isFreeModel = (model: TogetherModel): boolean => {
     const pricing = model.pricing || { input: 0, output: 0, hourly: 0 };
     return pricing.input === 0 && pricing.output === 0 && pricing.hourly === 0;
+};
+
+const isServerlessModel = (model: any): boolean => {
+    // Check if model has serverless access
+    // Models without "access" field or with "serverless" are considered serverless
+    // Models with "endpoint" require dedicated endpoints (non-serverless)
+
+    // Filter out known non-serverless patterns by model ID
+    const modelId = model.id || "";
+    const nonServerlessPatterns = [
+        "-Reference", // e.g., Meta-Llama-3.1-70B-Instruct-Reference
+        "-reference",
+        "/reference",
+    ];
+
+    // Exclude models with non-serverless patterns in ID
+    if (nonServerlessPatterns.some((pattern) => modelId.includes(pattern))) {
+        console.log(`   ⏭️  Skipping non-serverless model: ${modelId}`);
+        return false;
+    }
+
+    // Check access field
+    if (model.access === "endpoint") return false; // Requires dedicated endpoint
+
+    // Default to serverless if access field is missing or is "serverless"
+    return true;
 };
 
 const fetchTogetherModels = async (): Promise<TogetherModel[]> => {
@@ -55,9 +82,9 @@ const fetchTogetherModels = async (): Promise<TogetherModel[]> => {
 
         const allModels = await response.json();
 
-        // Filter only chat models
+        // Filter only chat models that are serverless
         const chatModels = allModels.filter(
-            (model: any) => model.type === "chat",
+            (model: any) => model.type === "chat" && isServerlessModel(model),
         );
 
         // Map to our format
@@ -75,6 +102,7 @@ const fetchTogetherModels = async (): Promise<TogetherModel[]> => {
                     context_length: model.context_length || 0,
                     type: model.type,
                     link: model.link || "",
+                    access: model.access || "serverless",
                     pricing: {
                         input: pricing.input || 0,
                         output: pricing.output || 0,
@@ -94,7 +122,10 @@ const fetchTogetherModels = async (): Promise<TogetherModel[]> => {
         );
 
         console.log(
-            `✅ Fetched ${formattedModels.length} Together AI chat models`,
+            `✅ Fetched ${formattedModels.length} Together AI serverless chat models`,
+        );
+        console.log(
+            `   🚀 Serverless: ${formattedModels.length} (non-serverless models filtered out)`,
         );
         console.log(
             `   🆓 Free: ${formattedModels.filter((m) => m.isFree).length}`,

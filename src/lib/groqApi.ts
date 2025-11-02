@@ -49,13 +49,39 @@ export const GROQ_MODELS = {
 export type GroqModelType = keyof typeof GROQ_MODELS;
 
 // Models that don't support reasoning_effort parameter
-const NO_REASONING_MODELS = [
+// This list is auto-updated when we detect unsupported models
+const NO_REASONING_MODELS: Set<string> = new Set([
     "llama-3.1-8b-instant",
+    "llama-3.3-70b-versatile",
+    "llama-3.1-70b-versatile",
+    "llama-3.2-1b-preview",
+    "llama-3.2-3b-preview",
+    "llama-3.2-11b-vision-preview",
+    "llama-3.2-90b-vision-preview",
+    "llama-guard-3-8b",
+    "llama3-70b-8192",
+    "llama3-8b-8192",
     "mixtral-8x7b-32768",
+    "gemma-7b-it",
     "gemma2-9b-it",
     "groq/compound",
     "moonshotai/kimi-k2-instruct-0905",
-];
+]);
+
+// Helper function to check if model supports reasoning_effort
+const supportsReasoningEffort = (modelId: string): boolean => {
+    // Check if in blacklist
+    if (NO_REASONING_MODELS.has(modelId)) {
+        return false;
+    }
+
+    // Auto-detect: Most Groq models don't support reasoning_effort
+    // Only specific reasoning models support it (like DeepSeek R1)
+    const reasoningPatterns = ["deepseek", "r1", "reasoning", "think"];
+
+    const lowerModelId = modelId.toLowerCase();
+    return reasoningPatterns.some((pattern) => lowerModelId.includes(pattern));
+};
 
 class GroqApiService {
     private apiKey: string;
@@ -83,8 +109,15 @@ class GroqApiService {
             };
 
             // Only add reasoning_effort if model supports it
-            if (!NO_REASONING_MODELS.includes(options.model)) {
+            if (supportsReasoningEffort(options.model)) {
                 requestBody.reasoning_effort = "medium";
+                console.log(
+                    `✅ Model ${options.model} supports reasoning_effort`,
+                );
+            } else {
+                console.log(
+                    `⏭️ Model ${options.model} does not support reasoning_effort - skipping parameter`,
+                );
             }
 
             const response = await fetch(this.apiUrl, {
@@ -98,6 +131,37 @@ class GroqApiService {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
+
+                // Auto-detect if error is due to reasoning_effort
+                if (errorData.error?.message?.includes("reasoning_effort")) {
+                    console.warn(
+                        `⚠️ Model ${options.model} doesn't support reasoning_effort - adding to blacklist and retrying`,
+                    );
+                    NO_REASONING_MODELS.add(options.model);
+
+                    // Retry without reasoning_effort
+                    delete requestBody.reasoning_effort;
+                    const retryResponse = await fetch(this.apiUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${this.apiKey}`,
+                        },
+                        body: JSON.stringify(requestBody),
+                    });
+
+                    if (!retryResponse.ok) {
+                        const retryError = await retryResponse
+                            .json()
+                            .catch(() => ({}));
+                        throw new Error(
+                            retryError.error?.message ||
+                                `Groq API error: ${retryResponse.status} ${retryResponse.statusText}`,
+                        );
+                    }
+
+                    return await retryResponse.json();
+                }
                 throw new Error(
                     `Groq API error: ${response.status} ${response.statusText}. ${
                         errorData.error?.message || ""
@@ -135,8 +199,15 @@ class GroqApiService {
             };
 
             // Only add reasoning_effort if model supports it
-            if (!NO_REASONING_MODELS.includes(options.model)) {
+            if (supportsReasoningEffort(options.model)) {
                 requestBody.reasoning_effort = "medium";
+                console.log(
+                    `✅ Model ${options.model} supports reasoning_effort (streaming)`,
+                );
+            } else {
+                console.log(
+                    `⏭️ Model ${options.model} does not support reasoning_effort - skipping parameter (streaming)`,
+                );
             }
 
             const response = await fetch(this.apiUrl, {
@@ -150,6 +221,90 @@ class GroqApiService {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
+
+                // Auto-detect if error is due to reasoning_effort
+                if (errorData.error?.message?.includes("reasoning_effort")) {
+                    console.warn(
+                        `⚠️ Model ${options.model} doesn't support reasoning_effort - adding to blacklist and retrying (streaming)`,
+                    );
+                    NO_REASONING_MODELS.add(options.model);
+
+                    // Retry without reasoning_effort
+                    delete requestBody.reasoning_effort;
+                    const retryResponse = await fetch(this.apiUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${this.apiKey}`,
+                        },
+                        body: JSON.stringify(requestBody),
+                    });
+
+                    if (!retryResponse.ok) {
+                        const retryError = await retryResponse
+                            .json()
+                            .catch(() => ({}));
+                        const error = new Error(
+                            retryError.error?.message ||
+                                `Groq API error: ${retryResponse.status} ${retryResponse.statusText}`,
+                        );
+                        onError(error);
+                        return;
+                    }
+
+                    // Continue with retry response
+                    const retryReader = retryResponse.body?.getReader();
+                    if (!retryReader) {
+                        throw new Error("Retry response body is not readable");
+                    }
+
+                    const decoder = new TextDecoder();
+                    let buffer = "";
+
+                    while (true) {
+                        const { done, value } = await retryReader.read();
+
+                        if (done) {
+                            onComplete();
+                            break;
+                        }
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split("\n");
+                        buffer = lines.pop() || "";
+
+                        for (const line of lines) {
+                            const trimmedLine = line.trim();
+                            if (
+                                !trimmedLine ||
+                                trimmedLine === "data: [DONE]"
+                            ) {
+                                continue;
+                            }
+
+                            if (trimmedLine.startsWith("data: ")) {
+                                try {
+                                    const jsonData = JSON.parse(
+                                        trimmedLine.slice(6),
+                                    );
+                                    const content =
+                                        jsonData.choices?.[0]?.delta?.content ||
+                                        "";
+                                    if (content) {
+                                        onChunk(content);
+                                    }
+                                } catch (e) {
+                                    console.error(
+                                        "Error parsing streaming JSON:",
+                                        e,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    return;
+                }
+
                 const error = new Error(
                     `Groq API error: ${response.status} ${response.statusText}. ${
                         errorData.error?.message || ""

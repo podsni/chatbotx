@@ -14,6 +14,9 @@ import {
     Users,
     Search,
     Filter,
+    DollarSign,
+    TrendingDown,
+    TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,6 +43,10 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { OpenRouterModelManager } from "@/components/OpenRouterModelManager";
+import { TogetherModelManager } from "@/components/TogetherModelManager";
+import { useTogetherModels, formatPrice } from "@/hooks/useTogetherModels";
 
 interface ChatSidebarProps {
     isOpen?: boolean;
@@ -74,8 +81,16 @@ export const ChatSidebar = ({
         new Set(["Today"]),
     );
     const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+    const [activeTab, setActiveTab] = useState<"models" | "settings">("models");
     const [searchQuery, setSearchQuery] = useState("");
     const [modelFilter, setModelFilter] = useState<"all" | "free">("all");
+    const [priceFilter, setPriceFilter] = useState<
+        "all" | "free" | "cheapest" | "expensive"
+    >("all");
+
+    // Use Together models hook for dynamic pricing
+    const { models: togetherModelsData, freeModels: togetherFreeModels } =
+        useTogetherModels();
 
     useEffect(() => {
         loadSessions();
@@ -220,7 +235,31 @@ export const ChatSidebar = ({
                 ) ||
                     model.id.includes(":free")));
 
-        return matchesSearch && matchesFreeFilter;
+        // Price filter for Together AI models
+        const matchesPriceFilter = (() => {
+            if (model.provider !== "together") return true; // Non-Together models pass
+            if (priceFilter === "all") return true;
+
+            const togetherModel = togetherModelsData.find(
+                (m) => m.id === model.id,
+            );
+            if (!togetherModel) return true;
+
+            if (priceFilter === "free") return togetherModel.isFree;
+            if (priceFilter === "cheapest") {
+                const totalCost =
+                    togetherModel.pricing.input + togetherModel.pricing.output;
+                return totalCost < 1; // Cheapest: under $1/1M
+            }
+            if (priceFilter === "expensive") {
+                const totalCost =
+                    togetherModel.pricing.input + togetherModel.pricing.output;
+                return totalCost >= 2; // Premium: $2+/1M
+            }
+            return true;
+        })();
+
+        return matchesSearch && matchesFreeFilter && matchesPriceFilter;
     });
 
     // Group filtered models by provider
@@ -293,9 +332,29 @@ export const ChatSidebar = ({
             description: string;
             speed: string;
             features: string[];
+            pricing?: {
+                input: number;
+                output: number;
+            };
         }>,
         providerName: string,
     ) => {
+        // Enhance Together models with pricing from hook
+        const enhancedModels = models.map((model) => {
+            if (provider === "together") {
+                const togetherModel = togetherModelsData.find(
+                    (m) => m.id === model.id,
+                );
+                if (togetherModel) {
+                    return {
+                        ...model,
+                        pricing: togetherModel.pricing,
+                        isFree: togetherModel.isFree,
+                    };
+                }
+            }
+            return model;
+        });
         const isExpanded = expandedProvider === provider;
 
         return (
@@ -334,7 +393,7 @@ export const ChatSidebar = ({
 
                 {isExpanded && (
                     <div className="mt-1 space-y-1 ml-1 sm:ml-2">
-                        {models.map((model) => (
+                        {enhancedModels.map((model: any) => (
                             <button
                                 key={model.id}
                                 onClick={() =>
@@ -365,6 +424,45 @@ export const ChatSidebar = ({
                                         <div className="text-[8px] sm:text-[9px] text-muted-foreground line-clamp-2 leading-relaxed">
                                             {model.description}
                                         </div>
+                                        {/* Show pricing for Together models */}
+                                        {provider === "together" &&
+                                            model.pricing && (
+                                                <div className="flex gap-1 mt-1">
+                                                    {model.isFree ? (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-[7px] px-1 py-0 bg-green-500/10 text-green-400 border-green-500/30"
+                                                        >
+                                                            💚 Free
+                                                        </Badge>
+                                                    ) : (
+                                                        <>
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="text-[7px] px-1 py-0 bg-blue-500/10 text-blue-400 border-blue-500/30"
+                                                            >
+                                                                ⬆️{" "}
+                                                                {formatPrice(
+                                                                    model
+                                                                        .pricing
+                                                                        .input,
+                                                                )}
+                                                            </Badge>
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="text-[7px] px-1 py-0 bg-blue-500/10 text-blue-400 border-blue-500/30"
+                                                            >
+                                                                ⬇️{" "}
+                                                                {formatPrice(
+                                                                    model
+                                                                        .pricing
+                                                                        .output,
+                                                                )}
+                                                            </Badge>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
                                     </div>
                                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                                         <Badge
@@ -583,160 +681,296 @@ export const ChatSidebar = ({
                 </div>
 
                 <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-                    <div className="p-2 sm:p-3 lg:p-4 border-b border-sidebar-border flex-shrink-0 space-y-2">
-                        {/* Header */}
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xs sm:text-sm font-medium text-sidebar-foreground flex items-center gap-1.5">
-                                <span className="hidden sm:inline">
-                                    All AI Models
-                                </span>
-                                <span className="sm:hidden">Models</span>
-                                <Badge
-                                    variant="outline"
-                                    className="text-[8px] sm:text-[9px] px-1 sm:px-1.5 py-0"
+                    <Tabs
+                        value={activeTab}
+                        onValueChange={(v) =>
+                            setActiveTab(v as "models" | "settings")
+                        }
+                        className="flex-1 flex flex-col min-h-0"
+                    >
+                        <div className="p-2 sm:p-3 lg:p-4 border-b border-sidebar-border flex-shrink-0 space-y-2">
+                            {/* Tabs */}
+                            <TabsList className="grid w-full grid-cols-2 mb-2">
+                                <TabsTrigger
+                                    value="models"
+                                    className="text-[10px] sm:text-xs gap-1 h-7 sm:h-8"
                                 >
-                                    {filteredModels.length}
-                                </Badge>
-                            </h2>
-                            <div className="flex gap-1 sm:gap-2">
-                                {onOpenAgentMode && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={onOpenAgentMode}
-                                        className="h-7 text-[10px] lg:text-xs gap-1"
-                                    >
-                                        <Zap className="w-3 h-3" />
-                                        <span className="hidden sm:inline">
-                                            Agent
-                                        </span>
-                                    </Button>
-                                )}
-                                {onOpenASSDebateMode && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={onOpenASSDebateMode}
-                                        className="h-7 text-[10px] lg:text-xs gap-1"
-                                    >
-                                        <Users className="w-3 h-3" />
-                                        <span className="hidden sm:inline">
-                                            Debate
-                                        </span>
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
+                                    <MessageSquare className="w-3 h-3" />
+                                    <span className="hidden xs:inline">
+                                        Models
+                                    </span>
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="settings"
+                                    className="text-[10px] sm:text-xs gap-1 h-7 sm:h-8"
+                                >
+                                    <DollarSign className="w-3 h-3" />
+                                    <span className="hidden xs:inline">
+                                        Pricing
+                                    </span>
+                                </TabsTrigger>
+                            </TabsList>
 
-                        {/* Search Input */}
-                        <div className="relative">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground" />
-                            <Input
-                                placeholder="Search models..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="h-7 sm:h-8 pl-7 sm:pl-8 text-[10px] sm:text-xs bg-sidebar-accent/50 border-sidebar-border"
-                            />
-                            {searchQuery && (
-                                <button
-                                    onClick={() => setSearchQuery("")}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                >
-                                    <X className="h-3 w-3" />
-                                </button>
+                            {activeTab === "models" && (
+                                <>
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-xs sm:text-sm font-medium text-sidebar-foreground flex items-center gap-1.5">
+                                            <span className="hidden sm:inline">
+                                                All AI Models
+                                            </span>
+                                            <span className="sm:hidden">
+                                                Models
+                                            </span>
+                                            <Badge
+                                                variant="outline"
+                                                className="text-[8px] sm:text-[9px] px-1 sm:px-1.5 py-0"
+                                            >
+                                                {filteredModels.length}
+                                            </Badge>
+                                        </h2>
+                                        <div className="flex gap-1 sm:gap-2">
+                                            {onOpenAgentMode && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={onOpenAgentMode}
+                                                    className="h-7 text-[10px] lg:text-xs gap-1"
+                                                >
+                                                    <Zap className="w-3 h-3" />
+                                                    <span className="hidden sm:inline">
+                                                        Agent
+                                                    </span>
+                                                </Button>
+                                            )}
+                                            {onOpenASSDebateMode && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={
+                                                        onOpenASSDebateMode
+                                                    }
+                                                    className="h-7 text-[10px] lg:text-xs gap-1"
+                                                >
+                                                    <Users className="w-3 h-3" />
+                                                    <span className="hidden sm:inline">
+                                                        Debate
+                                                    </span>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Search Input */}
+                                    <div className="relative">
+                                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Search models..."
+                                            value={searchQuery}
+                                            onChange={(e) =>
+                                                setSearchQuery(e.target.value)
+                                            }
+                                            className="h-7 sm:h-8 pl-7 sm:pl-8 text-[10px] sm:text-xs bg-sidebar-accent/50 border-sidebar-border"
+                                        />
+                                        {searchQuery && (
+                                            <button
+                                                onClick={() =>
+                                                    setSearchQuery("")
+                                                }
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Filter Buttons */}
+                                    <div className="flex items-center gap-1.5">
+                                        <Filter className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
+                                        <div className="flex gap-1 flex-1">
+                                            <Button
+                                                variant={
+                                                    modelFilter === "all"
+                                                        ? "default"
+                                                        : "outline"
+                                                }
+                                                size="sm"
+                                                onClick={() =>
+                                                    setModelFilter("all")
+                                                }
+                                                className="h-6 text-[9px] sm:text-[10px] px-2 sm:px-3 flex-1"
+                                            >
+                                                All
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="ml-1 text-[8px] px-1 py-0"
+                                                >
+                                                    {allModels.length}
+                                                </Badge>
+                                            </Button>
+                                            <Button
+                                                variant={
+                                                    modelFilter === "free"
+                                                        ? "default"
+                                                        : "outline"
+                                                }
+                                                size="sm"
+                                                onClick={() =>
+                                                    setModelFilter("free")
+                                                }
+                                                className="h-6 text-[9px] sm:text-[10px] px-2 sm:px-3 flex-1"
+                                            >
+                                                🆓 Free
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="ml-1 text-[8px] px-1 py-0"
+                                                >
+                                                    {freeModelsCount}
+                                                </Badge>
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {/* Info Text */}
+                                    <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                                        {availableProviders.length} providers •{" "}
+                                        {filteredModels.length} models
+                                    </div>
+
+                                    {/* Price Filter (for Together AI) */}
+                                    {togetherModels.length > 0 && (
+                                        <div className="flex items-center gap-1.5">
+                                            <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-purple-400 flex-shrink-0" />
+                                            <div className="flex gap-1 flex-1 overflow-x-auto">
+                                                <Button
+                                                    variant={
+                                                        priceFilter === "all"
+                                                            ? "default"
+                                                            : "outline"
+                                                    }
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setPriceFilter("all")
+                                                    }
+                                                    className="h-6 text-[9px] sm:text-[10px] px-2 flex-shrink-0"
+                                                >
+                                                    All
+                                                </Button>
+                                                <Button
+                                                    variant={
+                                                        priceFilter === "free"
+                                                            ? "default"
+                                                            : "outline"
+                                                    }
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setPriceFilter("free")
+                                                    }
+                                                    className="h-6 text-[9px] sm:text-[10px] px-2 flex-shrink-0"
+                                                >
+                                                    🆓
+                                                </Button>
+                                                <Button
+                                                    variant={
+                                                        priceFilter ===
+                                                        "cheapest"
+                                                            ? "default"
+                                                            : "outline"
+                                                    }
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setPriceFilter(
+                                                            "cheapest",
+                                                        )
+                                                    }
+                                                    className="h-6 text-[9px] sm:text-[10px] px-2 flex-shrink-0"
+                                                >
+                                                    <TrendingDown className="h-3 w-3" />
+                                                </Button>
+                                                <Button
+                                                    variant={
+                                                        priceFilter ===
+                                                        "expensive"
+                                                            ? "default"
+                                                            : "outline"
+                                                    }
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setPriceFilter(
+                                                            "expensive",
+                                                        )
+                                                    }
+                                                    className="h-6 text-[9px] sm:text-[10px] px-2 flex-shrink-0"
+                                                >
+                                                    <TrendingUp className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
 
-                        {/* Filter Buttons */}
-                        <div className="flex items-center gap-1.5">
-                            <Filter className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
-                            <div className="flex gap-1 flex-1">
-                                <Button
-                                    variant={
-                                        modelFilter === "all"
-                                            ? "default"
-                                            : "outline"
-                                    }
-                                    size="sm"
-                                    onClick={() => setModelFilter("all")}
-                                    className="h-6 text-[9px] sm:text-[10px] px-2 sm:px-3 flex-1"
-                                >
-                                    All
-                                    <Badge
-                                        variant="secondary"
-                                        className="ml-1 text-[8px] px-1 py-0"
-                                    >
-                                        {allModels.length}
-                                    </Badge>
-                                </Button>
-                                <Button
-                                    variant={
-                                        modelFilter === "free"
-                                            ? "default"
-                                            : "outline"
-                                    }
-                                    size="sm"
-                                    onClick={() => setModelFilter("free")}
-                                    className="h-6 text-[9px] sm:text-[10px] px-2 sm:px-3 flex-1"
-                                >
-                                    🆓 Free
-                                    <Badge
-                                        variant="secondary"
-                                        className="ml-1 text-[8px] px-1 py-0"
-                                    >
-                                        {freeModelsCount}
-                                    </Badge>
-                                </Button>
+                        <TabsContent
+                            value="models"
+                            className="flex-1 m-0 data-[state=active]:flex data-[state=active]:flex-col min-h-0 overflow-hidden"
+                        >
+                            <div className="flex-1 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 pb-4">
+                                {filteredModels.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                                        <Search className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                                        <p className="text-sm text-muted-foreground">
+                                            No models found
+                                        </p>
+                                        <p className="text-xs text-muted-foreground/70 mt-1">
+                                            Try a different search or filter
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {poeModels.length > 0 &&
+                                            renderProviderSection(
+                                                "poe",
+                                                poeModels,
+                                                "Poe AI",
+                                            )}
+                                        {togetherModels.length > 0 &&
+                                            renderProviderSection(
+                                                "together",
+                                                togetherModels,
+                                                "Together AI",
+                                            )}
+                                        {groqModels.length > 0 &&
+                                            renderProviderSection(
+                                                "groq",
+                                                groqModels,
+                                                "Groq",
+                                            )}
+                                        {openrouterModels.length > 0 &&
+                                            renderProviderSection(
+                                                "openrouter",
+                                                openrouterModels,
+                                                "OpenRouter (Free)",
+                                            )}
+                                    </>
+                                )}
                             </div>
-                        </div>
+                        </TabsContent>
 
-                        {/* Info Text */}
-                        <div className="text-[8px] sm:text-[9px] text-muted-foreground">
-                            {availableProviders.length} providers •{" "}
-                            {filteredModels.length} models
-                        </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 pb-4">
-                        {filteredModels.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <Search className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                                <p className="text-sm text-muted-foreground">
-                                    No models found
-                                </p>
-                                <p className="text-xs text-muted-foreground/70 mt-1">
-                                    Try a different search or filter
-                                </p>
+                        <TabsContent
+                            value="settings"
+                            className="flex-1 m-0 data-[state=active]:flex data-[state=active]:flex-col min-h-0 overflow-hidden"
+                        >
+                            <div className="flex-1 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 pb-4">
+                                <div className="space-y-4">
+                                    <TogetherModelManager />
+                                    <div className="border-t border-sidebar-border pt-4">
+                                        <OpenRouterModelManager />
+                                    </div>
+                                </div>
                             </div>
-                        ) : (
-                            <>
-                                {poeModels.length > 0 &&
-                                    renderProviderSection(
-                                        "poe",
-                                        poeModels,
-                                        "Poe AI",
-                                    )}
-                                {togetherModels.length > 0 &&
-                                    renderProviderSection(
-                                        "together",
-                                        togetherModels,
-                                        "Together AI",
-                                    )}
-                                {groqModels.length > 0 &&
-                                    renderProviderSection(
-                                        "groq",
-                                        groqModels,
-                                        "Groq",
-                                    )}
-                                {openrouterModels.length > 0 &&
-                                    renderProviderSection(
-                                        "openrouter",
-                                        openrouterModels,
-                                        "OpenRouter (Free)",
-                                    )}
-                            </>
-                        )}
-                    </div>
+                        </TabsContent>
+                    </Tabs>
                 </div>
 
                 <div className="p-3 lg:p-4 border-t border-sidebar-border flex-shrink-0">

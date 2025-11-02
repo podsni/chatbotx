@@ -8,6 +8,7 @@ import { openrouterApi, OpenRouterMessage } from "./openrouterApi";
 export type Provider = "poe" | "together" | "groq" | "openrouter";
 
 const OPENROUTER_CACHE_KEY = "openrouter_free_models_cache";
+const TOGETHER_CACHE_KEY = "together_chat_models_cache";
 
 export interface UnifiedMessage {
     role: "user" | "assistant" | "system";
@@ -420,11 +421,128 @@ function loadDynamicOpenRouterModels(): Record<string, ModelInfo> {
         });
 
         console.log(
-            `✅ Loaded ${freeCount} FREE OpenRouter models for sidebar`,
+            `✅ Loaded ${freeCount} FREE models from OpenRouter cache (${Object.keys(dynamicModels).length} added)`,
         );
         return dynamicModels;
-    } catch (err) {
-        console.error("❌ Error loading dynamic OpenRouter models:", err);
+    } catch (error) {
+        console.error("❌ Error loading OpenRouter dynamic models:", error);
+        return {};
+    }
+}
+
+// Function to load dynamic Together AI models from cache (ALL CHAT MODELS)
+function loadDynamicTogetherModels(): Record<string, ModelInfo> {
+    try {
+        const cached = localStorage.getItem(TOGETHER_CACHE_KEY);
+        if (!cached) {
+            console.log("📦 No Together AI cache found");
+            return {};
+        }
+
+        interface TogetherCachedModel {
+            id: string;
+            display_name: string;
+            organization: string;
+            context_length: number;
+            type: string;
+            pricing: {
+                input: number;
+                output: number;
+                hourly: number;
+            };
+            isFree: boolean;
+        }
+
+        interface CachedData {
+            models: TogetherCachedModel[];
+            timestamp: number;
+        }
+
+        const data = JSON.parse(cached) as CachedData;
+        const models = data.models || [];
+
+        console.log(
+            `📦 Loading ${models.length} Together AI chat models from cache`,
+        );
+
+        const dynamicModels: Record<string, ModelInfo> = {};
+        let freeCount = 0;
+        let paidCount = 0;
+
+        models.forEach((model: TogetherCachedModel) => {
+            if (model.isFree) {
+                freeCount++;
+            } else {
+                paidCount++;
+            }
+
+            const modelKey = `together:${model.id}`;
+
+            // Determine speed based on context length and pricing
+            const speed = model.isFree
+                ? ("Fast" as const)
+                : model.context_length > 100000
+                  ? ("Slow" as const)
+                  : model.pricing.input + model.pricing.output < 1
+                    ? ("Fast" as const)
+                    : ("Balanced" as const);
+
+            // Determine quality based on organization and pricing
+            const quality =
+                model.organization === "Meta" ||
+                model.organization === "Google" ||
+                model.pricing.input + model.pricing.output > 2
+                    ? ("High" as const)
+                    : model.pricing.input + model.pricing.output < 0.5
+                      ? ("Medium" as const)
+                      : ("High" as const);
+
+            // Build features array
+            const features: string[] = [];
+
+            if (model.isFree) {
+                features.push("🆓 Free");
+            } else {
+                const totalCost = model.pricing.input + model.pricing.output;
+                if (totalCost < 1) {
+                    features.push("💰 Budget-friendly");
+                } else if (totalCost >= 2) {
+                    features.push("💎 Premium");
+                }
+            }
+
+            if (model.context_length >= 1000000) {
+                features.push(
+                    `${(model.context_length / 1000000).toFixed(1)}M ctx`,
+                );
+            } else if (model.context_length >= 1000) {
+                features.push(
+                    `${(model.context_length / 1000).toFixed(0)}K ctx`,
+                );
+            }
+
+            features.push("Chat model");
+            features.push(model.organization);
+
+            dynamicModels[modelKey] = {
+                id: model.id,
+                name: model.display_name,
+                provider: "together",
+                description: `${model.organization} chat model${!model.isFree ? ` - Input: $${model.pricing.input}/1M, Output: $${model.pricing.output}/1M` : " - Completely Free"}`,
+                speed,
+                quality,
+                features,
+                icon: "MessageSquare",
+                color: "from-purple-500 to-pink-500",
+            };
+        });
+
+        console.log(
+            `✅ Loaded ${models.length} Together AI models from cache (${freeCount} free, ${paidCount} paid)`,
+        );
+        return dynamicModels;
+    } catch (error) {
+        console.error("❌ Error loading Together AI dynamic models:", error);
         return {};
     }
 }
@@ -534,9 +652,14 @@ class UnifiedAiService {
     }
 
     getAllModels(): ModelInfo[] {
-        // Merge static models with dynamic OpenRouter models
-        const dynamicModels = loadDynamicOpenRouterModels();
-        const allModels = { ...ALL_MODELS, ...dynamicModels };
+        // Merge static models with dynamic OpenRouter and Together models
+        const dynamicOpenRouter = loadDynamicOpenRouterModels();
+        const dynamicTogether = loadDynamicTogetherModels();
+        const allModels = {
+            ...ALL_MODELS,
+            ...dynamicOpenRouter,
+            ...dynamicTogether,
+        };
         return Object.values(allModels);
     }
 
@@ -566,6 +689,31 @@ class UnifiedAiService {
             return staticModels;
         }
 
+        if (provider === "together") {
+            // For Together, prioritize dynamic models from cache
+            const dynamicModels = loadDynamicTogetherModels();
+            const dynamicList = Object.values(dynamicModels);
+
+            // Get static models
+            const staticModels = Object.values(ALL_MODELS).filter(
+                (m) => m.provider === provider,
+            );
+
+            // If we have dynamic models, use them
+            if (dynamicList.length > 0) {
+                console.log(
+                    `🎯 Using ${dynamicList.length} dynamic chat models for Together AI`,
+                );
+                return dynamicList;
+            }
+
+            // Otherwise fall back to static models
+            console.log(
+                `🎯 Using ${staticModels.length} static models for Together AI`,
+            );
+            return staticModels;
+        }
+
         return Object.values(ALL_MODELS).filter((m) => m.provider === provider);
     }
 
@@ -573,6 +721,13 @@ class UnifiedAiService {
         // Check dynamic models first for OpenRouter
         if (provider === "openrouter") {
             const dynamicModels = loadDynamicOpenRouterModels();
+            const dynamicModel = dynamicModels[`${provider}:${modelId}`];
+            if (dynamicModel) return dynamicModel;
+        }
+
+        // Check dynamic models first for Together
+        if (provider === "together") {
+            const dynamicModels = loadDynamicTogetherModels();
             const dynamicModel = dynamicModels[`${provider}:${modelId}`];
             if (dynamicModel) return dynamicModel;
         }

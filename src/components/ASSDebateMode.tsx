@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
     Send,
     Loader2,
@@ -52,6 +52,7 @@ import {
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { DebateSessionManager } from "./DebateSessionManager";
 import { DebateAnalytics } from "./DebateAnalytics";
+import { DebateModelSelector } from "./DebateModelSelector";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -73,6 +74,9 @@ import {
     TournamentBracket,
 } from "@/lib/assDebate";
 import { aiApi, Provider } from "@/lib/aiApi";
+import { useGroqModels } from "@/hooks/useGroqModels";
+import { useTogetherModels } from "@/hooks/useTogetherModels";
+import { useOpenRouterModels } from "@/hooks/useOpenRouterModels";
 
 interface ASSDebateModeProps {
     isOpen: boolean;
@@ -120,56 +124,38 @@ export const ASSDebateMode = ({ isOpen, onClose }: ASSDebateModeProps) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
 
-    // Model options per provider
-    const modelOptions = {
-        poe: [
-            { id: "GPT-5-mini", name: "GPT-5 Mini (Recommended)" },
-            { id: "GPT-5-nano", name: "GPT-5 Nano (Ultra Fast)" },
-            { id: "Grok-4-Fast-Reasoning", name: "Grok-4 Fast Reasoning" },
-            { id: "Gemini-2.5-Flash-Lite", name: "Gemini 2.5 Flash Lite" },
-        ],
-        groq: [
-            { id: "openai/gpt-oss-20b", name: "GPT-OSS 20B" },
-            { id: "groq/compound", name: "Groq Compound" },
-            { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B Instant" },
-            { id: "openai/gpt-oss-120b", name: "GPT-OSS 120B (Terbesar)" },
-            {
-                id: "moonshotai/kimi-k2-instruct-0905",
-                name: "Kimi K2 Instruct",
-            },
-        ],
-        together: [
-            { id: "openai/gpt-oss-20b", name: "GPT-OSS 20B" },
-            {
-                id: "Qwen/Qwen3-Next-80B-A3B-Instruct",
-                name: "Qwen3 Next 80B (Terbesar)",
-            },
-            {
-                id: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-                name: "Llama 4 Maverick 17B",
-            },
-            { id: "zai-org/GLM-4.5-Air-FP8", name: "GLM 4.5 Air FP8" },
-        ],
-        openrouter: [
-            {
-                id: "nvidia/nemotron-nano-12b-v2-vl:free",
-                name: "Nvidia Nemotron Nano 12B (Free)",
-            },
-            { id: "minimax/minimax-m2:free", name: "MiniMax M2 (Free)" },
-            {
-                id: "meta-llama/llama-3.2-3b-instruct:free",
-                name: "Llama 3.2 3B (Free)",
-            },
-            {
-                id: "meta-llama/llama-3.1-8b-instruct:free",
-                name: "Llama 3.1 8B (Free)",
-            },
-            {
-                id: "mistralai/mistral-7b-instruct:free",
-                name: "Mistral 7B (Free)",
-            },
-        ],
-    };
+    // Load models from all provider hooks (DYNAMIC - syncs with Chat/Agent modes)
+    const { models: groqModels } = useGroqModels();
+    const { models: togetherModelsData } = useTogetherModels();
+    const { models: openrouterModels } = useOpenRouterModels();
+
+    // Get all models from aiApi (includes static POE models)
+    const allModels = aiApi.getAllModels();
+
+    // Build dynamic model options per provider using hooks + aiApi
+    // This ensures ASS Debate Mode has THE SAME models as Chat and Agent modes
+    const modelOptions = useMemo(
+        () => ({
+            poe: allModels
+                .filter((m) => m.provider === "poe")
+                .map((m) => ({ id: m.id, name: m.name })),
+            groq: groqModels.map((m) => ({
+                id: m.id,
+                name:
+                    m.id.split("/").pop()?.replace(/-/g, " ").toUpperCase() ||
+                    m.id,
+            })),
+            together: togetherModelsData.map((m) => ({
+                id: m.id,
+                name: m.display_name || m.id.split("/").pop() || m.id,
+            })),
+            openrouter: openrouterModels.map((m) => ({
+                id: m.id,
+                name: m.name || m.id,
+            })),
+        }),
+        [allModels, groqModels, togetherModelsData, openrouterModels],
+    );
 
     // Load saved sessions on mount
     useEffect(() => {
@@ -1772,110 +1758,41 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                             </div>
                                         </div>
 
-                                        {/* Model Configuration */}
+                                        {/* Model Configuration with Search */}
                                         {isSelected && (
-                                            <div className="space-y-2 mt-2 pt-2 border-t">
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {/* Provider Selection */}
-                                                    <div className="space-y-1">
-                                                        <Label className="text-[10px]">
-                                                            Provider
-                                                        </Label>
-                                                        <Select
-                                                            value={
-                                                                modelConfig.provider
-                                                            }
-                                                            onValueChange={(
-                                                                value,
-                                                            ) => {
-                                                                const firstModel =
-                                                                    modelOptions[
-                                                                        value as Provider
-                                                                    ][0].id;
-                                                                updateCharacterModel(
-                                                                    personality,
-                                                                    value as Provider,
-                                                                    firstModel,
-                                                                );
-                                                            }}
-                                                        >
-                                                            <SelectTrigger className="h-8 text-xs">
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="poe">
-                                                                    POE
-                                                                    (Multi-Model)
-                                                                </SelectItem>
-                                                                <SelectItem value="groq">
-                                                                    GROQ (Cepat)
-                                                                </SelectItem>
-                                                                <SelectItem value="together">
-                                                                    Together AI
-                                                                    (Powerful)
-                                                                </SelectItem>
-                                                                <SelectItem value="openrouter">
-                                                                    OpenRouter
-                                                                    (Free)
-                                                                </SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-
-                                                    {/* Model Selection */}
-                                                    <div className="space-y-1">
-                                                        <Label className="text-[10px]">
-                                                            Model
-                                                        </Label>
-                                                        <Select
-                                                            value={
-                                                                modelConfig.modelId
-                                                            }
-                                                            onValueChange={(
-                                                                value,
-                                                            ) =>
-                                                                updateCharacterModel(
-                                                                    personality,
-                                                                    modelConfig.provider,
-                                                                    value,
-                                                                )
-                                                            }
-                                                        >
-                                                            <SelectTrigger className="h-8 text-xs">
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                {modelOptions[
-                                                                    modelConfig
-                                                                        .provider
-                                                                ].map(
-                                                                    (model) => (
-                                                                        <SelectItem
-                                                                            key={
-                                                                                model.id
-                                                                            }
-                                                                            value={
-                                                                                model.id
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                model.name
-                                                                            }
-                                                                        </SelectItem>
-                                                                    ),
-                                                                )}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-                                                </div>
-                                                <div className="text-[9px] text-muted-foreground">
-                                                    ⚡{" "}
-                                                    {modelConfig.provider.toUpperCase()}{" "}
-                                                    •{" "}
-                                                    {modelConfig.modelId
-                                                        .split("/")
-                                                        .pop()}
-                                                </div>
+                                            <div className="mt-2 pt-2 border-t">
+                                                <DebateModelSelector
+                                                    provider={
+                                                        modelConfig.provider
+                                                    }
+                                                    modelId={
+                                                        modelConfig.modelId
+                                                    }
+                                                    modelOptions={modelOptions}
+                                                    onProviderChange={(
+                                                        newProvider,
+                                                    ) => {
+                                                        const firstModel =
+                                                            modelOptions[
+                                                                newProvider
+                                                            ][0].id;
+                                                        updateCharacterModel(
+                                                            personality,
+                                                            newProvider,
+                                                            firstModel,
+                                                        );
+                                                    }}
+                                                    onModelChange={(
+                                                        newModelId,
+                                                    ) =>
+                                                        updateCharacterModel(
+                                                            personality,
+                                                            modelConfig.provider,
+                                                            newModelId,
+                                                        )
+                                                    }
+                                                    compact={true}
+                                                />
                                             </div>
                                         )}
                                     </div>

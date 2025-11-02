@@ -689,19 +689,19 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-[98vw] sm:max-w-[95vw] w-full h-[95vh] max-h-[95vh] p-0 gap-0 flex flex-col">
-                <DialogHeader className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-b border-border flex-shrink-0">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                <DialogHeader className="px-2 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 border-b border-border flex-shrink-0">
+                    <div className="flex items-center justify-between gap-1 sm:gap-2">
+                        <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
                             <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
                             {currentSessionId && !isEditingTitle ? (
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                    <DialogTitle className="text-sm sm:text-base lg:text-lg truncate">
+                                <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
+                                    <DialogTitle className="text-xs sm:text-sm lg:text-base truncate">
                                         {sessionTitle}
                                     </DialogTitle>
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-6 w-6 flex-shrink-0"
+                                        className="h-6 w-6 flex-shrink-0 hidden sm:flex"
                                         onClick={() => setIsEditingTitle(true)}
                                     >
                                         <Edit2 className="w-3 h-3" />
@@ -721,30 +721,30 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                             updateSessionTitle(sessionTitle);
                                         }
                                     }}
-                                    className="h-8 text-sm"
+                                    className="h-7 sm:h-8 text-xs sm:text-sm"
                                     autoFocus
                                 />
                             ) : (
-                                <DialogTitle className="text-sm sm:text-base lg:text-lg">
+                                <DialogTitle className="text-xs sm:text-sm lg:text-base truncate">
                                     Agent Mode
                                 </DialogTitle>
                             )}
                         </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
+                        <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
                             <Badge
                                 variant="outline"
-                                className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0"
+                                className="text-[8px] sm:text-[9px] px-1 py-0 hidden xs:inline-flex"
                             >
-                                {selectedModels.length} models
+                                {selectedModels.length}
                             </Badge>
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setShowSessions(!showSessions)}
-                                className="h-7 sm:h-8 text-[10px] sm:text-xs"
+                                className="h-7 sm:h-8 text-[10px] sm:text-xs px-2 sm:px-3"
                             >
-                                <MessageSquare className="w-3 h-3 sm:mr-1" />
-                                <span className="hidden sm:inline">
+                                <MessageSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                <span className="hidden sm:inline ml-1">
                                     Sessions
                                 </span>
                             </Button>
@@ -782,7 +782,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                             )}
                         </div>
                     </div>
-                    <DialogDescription className="text-[10px] sm:text-xs">
+                    <DialogDescription className="text-[9px] sm:text-[10px] lg:text-xs mt-1 hidden sm:block">
                         Multi-model comparison with continuous context
                     </DialogDescription>
                 </DialogHeader>
@@ -813,7 +813,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-6 w-6 lg:hidden"
+                                        className="h-7 w-7 lg:hidden"
                                         onClick={() => setShowSessions(false)}
                                     >
                                         <X className="w-4 h-4" />
@@ -825,7 +825,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                     <button
                                         key={preset.name}
                                         onClick={() => applyQuickPreset(preset)}
-                                        className="text-[9px] px-1.5 py-0.5 rounded bg-sidebar-accent hover:bg-sidebar-accent/80 border border-border transition-all"
+                                        className="text-[9px] sm:text-[10px] px-2 py-1 rounded bg-sidebar-accent hover:bg-sidebar-accent/80 border border-border transition-all"
                                     >
                                         {preset.icon} {preset.name}
                                     </button>
@@ -861,25 +861,25 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                                                 )
                                                             }
                                                             className={cn(
-                                                                "w-full text-left p-1.5 sm:p-2 rounded-md border transition-all hover:bg-sidebar-accent/80",
+                                                                "w-full text-left p-2 sm:p-2 rounded-md border transition-all hover:bg-sidebar-accent/80",
                                                                 selected
                                                                     ? "border-primary bg-primary/10"
                                                                     : "border-border bg-sidebar-accent/30",
                                                             )}
                                                         >
-                                                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                                            <div className="flex items-center gap-2 sm:gap-2">
                                                                 {selected ? (
-                                                                    <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                                                                    <CheckSquare className="w-4 h-4 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
                                                                 ) : (
-                                                                    <Square className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                                                                    <Square className="w-4 h-4 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
                                                                 )}
                                                                 <div className="flex-1 min-w-0">
-                                                                    <div className="text-[10px] sm:text-[11px] font-medium truncate">
+                                                                    <div className="text-[11px] sm:text-[11px] font-medium truncate">
                                                                         {
                                                                             model.name
                                                                         }
                                                                     </div>
-                                                                    <div className="text-[8px] sm:text-[9px] text-muted-foreground truncate">
+                                                                    <div className="text-[9px] sm:text-[9px] text-muted-foreground truncate">
                                                                         {model.description.substring(
                                                                             0,
                                                                             30,
@@ -909,7 +909,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                         variant="outline"
                                         size="sm"
                                         onClick={createNewSession}
-                                        className="h-6 sm:h-7 text-[9px] sm:text-[10px] px-1.5 sm:px-2"
+                                        className="h-7 sm:h-7 text-[10px] sm:text-[10px] px-2 sm:px-2"
                                         disabled={selectedModels.length === 0}
                                     >
                                         <Plus className="w-3 h-3 sm:mr-1" />
@@ -1028,7 +1028,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                                             )}
                                                         >
                                                             <CardHeader className="pb-2 p-2 sm:p-3">
-                                                                <CardTitle className="text-[10px] sm:text-xs flex items-center justify-between">
+                                                                <CardTitle className="text-[11px] sm:text-xs flex items-center justify-between">
                                                                     <span className="truncate">
                                                                         {
                                                                             response.modelName
@@ -1037,7 +1037,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                                                     <Badge
                                                                         variant="outline"
                                                                         className={cn(
-                                                                            "text-[7px] sm:text-[8px] px-1 py-0 ml-1 flex-shrink-0",
+                                                                            "text-[8px] sm:text-[8px] px-1 py-0 ml-1 flex-shrink-0",
                                                                             getProviderBadgeColor(
                                                                                 response.provider,
                                                                             ),
@@ -1141,12 +1141,16 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                         </ScrollArea>
 
                         {/* Input Area */}
-                        <div className="flex-shrink-0 border-t border-border pt-2 sm:pt-3">
-                            <div className="flex gap-1.5 sm:gap-2 items-end">
+                        <div className="flex-shrink-0 p-2 sm:p-3 lg:p-4 border-t border-border bg-sidebar/50">
+                            <div className="flex gap-1.5 sm:gap-2">
                                 <Textarea
                                     ref={textareaRef}
                                     value={input}
-                                    onChange={(e) => setInput(e.target.value)}
+                                    onChange={(e) => {
+                                        setInput(e.target.value);
+                                        e.target.style.height = "auto";
+                                        e.target.style.height = `${e.target.scrollHeight}px`;
+                                    }}
                                     onKeyDown={handleKeyDown}
                                     placeholder={
                                         !currentSessionId
@@ -1160,11 +1164,11 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                         isProcessing ||
                                         selectedModels.length === 0
                                     }
-                                    className="min-h-[36px] sm:min-h-[44px] max-h-24 sm:max-h-32 resize-none text-[11px] sm:text-xs lg:text-sm flex-1"
+                                    className="min-h-[40px] sm:min-h-[44px] max-h-24 sm:max-h-32 resize-none text-xs sm:text-xs lg:text-sm flex-1"
                                 />
                                 <Button
                                     size="icon"
-                                    className="h-9 w-9 sm:h-11 sm:w-11 lg:h-12 lg:w-12 flex-shrink-0"
+                                    className="h-10 w-10 sm:h-11 sm:w-11 lg:h-12 lg:w-12 flex-shrink-0"
                                     onClick={handleSendMessage}
                                     disabled={
                                         isProcessing ||
@@ -1181,7 +1185,7 @@ export const AgentMode = ({ isOpen, onClose }: AgentModeProps) => {
                                 </Button>
                             </div>
                             {conversation.length > 0 && (
-                                <div className="flex justify-between items-center mt-2 text-[9px] sm:text-[10px] text-muted-foreground">
+                                <div className="flex justify-between items-center mt-2 text-[10px] sm:text-[10px] text-muted-foreground">
                                     <span>
                                         {conversation.length} turns • Context
                                         preserved

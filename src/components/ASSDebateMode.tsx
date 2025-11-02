@@ -1868,10 +1868,10 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
         <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm">
             <div className="h-full w-full flex flex-col p-2 sm:p-3 md:p-4 max-w-full">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-2 flex-shrink-0 px-1 sm:px-0">
-                    <div className="flex-1 min-w-0 mr-2">
-                        <h1 className="text-base sm:text-xl md:text-2xl font-bold flex items-center gap-1 sm:gap-2">
-                            <span className="text-base sm:text-2xl">🎭</span>
+                <div className="flex items-center justify-between mb-2 sm:mb-3 flex-shrink-0 px-1 sm:px-0">
+                    <div className="flex-1 min-w-0 mr-1 sm:mr-2">
+                        <h1 className="text-sm sm:text-xl md:text-2xl font-bold flex items-center gap-1 sm:gap-2">
+                            <span className="text-lg sm:text-2xl">🎭</span>
                             <span className="truncate">
                                 <span className="hidden sm:inline">
                                     ASS Debate System
@@ -1879,21 +1879,21 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                 <span className="sm:hidden">ASS Debate</span>
                             </span>
                         </h1>
-                        <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground truncate">
+                        <p className="text-[9px] sm:text-xs md:text-sm text-muted-foreground truncate">
                             <span className="hidden md:inline">
                                 Argumentative System Service -{" "}
                             </span>
                             <span className="hidden sm:inline md:hidden">
                                 AI Debates
                             </span>
-                            <span className="sm:hidden">AI Expert Debates</span>
+                            <span className="sm:hidden">AI Debates</span>
                         </p>
                     </div>
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={onClose}
-                        className="flex-shrink-0"
+                        className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10"
                     >
                         <X className="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
@@ -1905,32 +1905,32 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                         <div className="w-full max-w-full sm:max-w-2xl md:max-w-3xl mx-auto space-y-2 sm:space-y-3 md:space-y-4 pb-4 px-1 sm:px-2">
                             {/* Question Input */}
                             <Card className="w-full">
-                                <CardHeader className="p-2 sm:p-3 pb-2">
-                                    <CardTitle className="text-xs sm:text-sm">
+                                <CardHeader className="p-3 sm:p-4 pb-2">
+                                    <CardTitle className="text-sm sm:text-base">
                                         Pertanyaan Debat
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-2 sm:space-y-3 p-2 sm:p-3 pt-0 w-full">
+                                <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-4 pt-0 w-full">
                                     <Textarea
                                         value={question}
                                         onChange={(e) =>
                                             setQuestion(e.target.value)
                                         }
                                         placeholder="Contoh: Haruskah kita mengembangkan AGI secepat mungkin?"
-                                        className="min-h-[80px] sm:min-h-[100px] text-sm resize-none w-full"
+                                        className="min-h-[100px] sm:min-h-[120px] text-xs sm:text-sm resize-none w-full"
                                     />
 
                                     {/* Preset Questions */}
-                                    <div className="space-y-1">
-                                        <Label className="text-[10px] sm:text-xs text-muted-foreground">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs sm:text-sm text-muted-foreground">
                                             Pertanyaan Preset:
                                         </Label>
-                                        <div className="grid grid-cols-1 gap-1 max-h-48 overflow-y-auto scroll-container">
+                                        <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto scroll-container">
                                             {presetQuestions.map((q) => (
                                                 <Button
                                                     key={q}
                                                     variant="outline"
-                                                    className="justify-start text-left h-auto py-2 px-2 text-xs overflow-wrap-anywhere active-scale"
+                                                    className="justify-start text-left h-auto py-2.5 px-3 text-xs sm:text-sm overflow-wrap-anywhere active-scale"
                                                     onClick={() =>
                                                         setQuestion(q)
                                                     }
@@ -1948,7 +1948,7 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setShowSettings(!showSettings)}
-                                className="w-full text-xs sm:text-sm active-scale"
+                                className="w-full h-9 sm:h-10 text-xs sm:text-sm active-scale"
                             >
                                 <Settings className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                                 {showSettings ? "Sembunyikan" : "Tampilkan"}{" "}
@@ -1965,48 +1965,48 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                             {/* Quick Info */}
                             {!showSettings && (
                                 <Card>
-                                    <CardContent className="p-2 sm:p-3">
+                                    <CardContent className="p-3 sm:p-4">
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-center w-full">
-                                            <div className="p-2 rounded bg-muted/20">
-                                                <div className="text-base sm:text-lg font-bold text-primary">
+                                            <div className="p-2.5 sm:p-2 rounded bg-muted/20">
+                                                <div className="text-lg sm:text-lg font-bold text-primary">
                                                     {
                                                         selectedPersonalities.length
                                                     }
                                                 </div>
-                                                <div className="text-[10px] sm:text-xs text-muted-foreground">
+                                                <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">
                                                     Debater
                                                 </div>
                                             </div>
-                                            <div className="p-2 rounded bg-muted/20">
-                                                <div className="text-base sm:text-lg font-bold text-primary truncate capitalize">
+                                            <div className="p-2.5 sm:p-2 rounded bg-muted/20">
+                                                <div className="text-lg sm:text-lg font-bold text-primary truncate capitalize">
                                                     {debateMode}
                                                 </div>
-                                                <div className="text-[10px] sm:text-xs text-muted-foreground">
+                                                <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">
                                                     Format
                                                 </div>
                                             </div>
-                                            <div className="p-2 rounded bg-muted/20">
-                                                <div className="text-base sm:text-lg font-bold text-primary">
+                                            <div className="p-2.5 sm:p-2 rounded bg-muted/20">
+                                                <div className="text-lg sm:text-lg font-bold text-primary">
                                                     {(
                                                         consensusThreshold * 100
                                                     ).toFixed(0)}
                                                     %
                                                 </div>
-                                                <div className="text-[10px] sm:text-xs text-muted-foreground">
+                                                <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">
                                                     Konsensus
                                                 </div>
                                             </div>
-                                            <div className="p-2 rounded bg-muted/20">
-                                                <div className="text-base sm:text-lg font-bold text-primary">
+                                            <div className="p-2.5 sm:p-2 rounded bg-muted/20">
+                                                <div className="text-lg sm:text-lg font-bold text-primary">
                                                     {maxIterations}
                                                 </div>
-                                                <div className="text-[10px] sm:text-xs text-muted-foreground">
+                                                <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">
                                                     Ronde
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-col sm:flex-row gap-2 mt-4 w-full">
+                                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 mt-4 w-full">
                                             <Button
                                                 onClick={startDebate}
                                                 disabled={
@@ -2014,20 +2014,20 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                                     !question ||
                                                     !selectedPersonalities.length
                                                 }
-                                                className="flex-1"
+                                                className="flex-1 h-11 sm:h-10 text-sm sm:text-base"
                                                 size="lg"
                                             >
-                                                <Play className="h-4 w-4 mr-2" />
+                                                <Play className="h-4 w-4 sm:h-4 sm:w-4 mr-2" />
                                                 Mulai Debat
                                             </Button>
                                             {isDebating && (
                                                 <Button
                                                     onClick={stopDebate}
                                                     variant="destructive"
-                                                    className="flex-1 animate-pulse"
+                                                    className="flex-1 h-11 sm:h-10 text-sm sm:text-base animate-pulse"
                                                     size="lg"
                                                 >
-                                                    <X className="h-4 w-4 mr-2" />
+                                                    <X className="h-4 w-4 sm:h-4 sm:w-4 mr-2" />
                                                     Stop Debat
                                                 </Button>
                                             )}
@@ -2036,10 +2036,14 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                                     setShowSessionManager(true)
                                                 }
                                                 variant="outline"
+                                                className="h-11 sm:h-10 text-sm sm:text-base"
                                                 size="lg"
                                             >
-                                                <FolderOpen className="h-4 w-4 mr-2" />
-                                                Sesi ({savedSessions.length})
+                                                <FolderOpen className="h-4 w-4 sm:h-4 sm:w-4 mr-2" />
+                                                <span className="hidden xs:inline">
+                                                    Sesi{" "}
+                                                </span>
+                                                ({savedSessions.length})
                                             </Button>
                                         </div>
                                     </CardContent>
@@ -2056,13 +2060,13 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                             onValueChange={setActiveTab}
                             className="flex-1 flex flex-col min-h-0 w-full"
                         >
-                            <TabsList className="grid w-full grid-cols-3 max-w-full sm:max-w-md mx-auto flex-shrink-0">
+                            <TabsList className="grid w-full grid-cols-3 max-w-full sm:max-w-md mx-auto flex-shrink-0 h-10 sm:h-11">
                                 <TabsTrigger
                                     value="debate"
-                                    className="text-xs sm:text-sm"
+                                    className="text-xs sm:text-sm gap-1 sm:gap-2"
                                 >
-                                    <Users className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                                    <span className="hidden sm:inline">
+                                    <Users className="h-4 w-4 sm:h-4 sm:w-4" />
+                                    <span className="hidden xs:inline">
                                         Debate
                                     </span>
                                 </TabsTrigger>
@@ -2071,31 +2075,31 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                     disabled={
                                         currentSession.rounds.length === 0
                                     }
-                                    className="text-xs sm:text-sm"
+                                    className="text-xs sm:text-sm gap-1 sm:gap-2"
                                 >
-                                    <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                                    <span className="hidden sm:inline">
+                                    <BarChart3 className="h-4 w-4 sm:h-4 sm:w-4" />
+                                    <span className="hidden xs:inline">
                                         Analytics
                                     </span>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="sessions"
-                                    className="text-xs sm:text-sm"
+                                    className="text-xs sm:text-sm gap-1 sm:gap-2"
                                 >
-                                    <FolderOpen className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                                    <span className="hidden sm:inline">
+                                    <FolderOpen className="h-4 w-4 sm:h-4 sm:w-4" />
+                                    <span className="hidden xs:inline">
                                         Sesi
                                     </span>
                                 </TabsTrigger>
                             </TabsList>
 
-                            <div className="flex-1 min-h-0 overflow-hidden mt-2 sm:mt-3 md:mt-4 w-full">
+                            <div className="flex-1 min-h-0 overflow-hidden mt-3 sm:mt-3 md:mt-4 w-full">
                                 <TabsContent
                                     value="debate"
                                     className="h-full m-0 overflow-hidden"
                                 >
                                     <div
-                                        className="h-full w-full overflow-y-auto overflow-x-hidden px-1 pr-2 sm:pr-3 scroll-container pb-4"
+                                        className="h-full w-full overflow-y-auto overflow-x-hidden px-2 pr-2 sm:pr-3 scroll-container pb-4"
                                         ref={scrollAreaRef}
                                     >
                                         {renderDebateContent()}
@@ -2106,7 +2110,7 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                     value="analytics"
                                     className="h-full m-0 overflow-hidden"
                                 >
-                                    <div className="h-full w-full overflow-y-auto overflow-x-hidden px-1 pr-2 sm:pr-3 scroll-container pb-4">
+                                    <div className="h-full w-full overflow-y-auto overflow-x-hidden px-2 pr-2 sm:pr-3 scroll-container pb-4">
                                         {currentSession.rounds.length > 0 ? (
                                             <DebateAnalytics
                                                 session={currentSession}
@@ -2131,7 +2135,7 @@ You are part of ${team.name}. Coordinate with your teammates and build upon thei
                                     value="sessions"
                                     className="h-full m-0 overflow-hidden"
                                 >
-                                    <div className="h-full w-full overflow-y-auto overflow-x-hidden px-1 pr-2 sm:pr-3 scroll-container pb-4">
+                                    <div className="h-full w-full overflow-y-auto overflow-x-hidden px-2 pr-2 sm:pr-3 scroll-container pb-4">
                                         <DebateSessionManager
                                             sessions={savedSessions}
                                             currentSession={currentSession}

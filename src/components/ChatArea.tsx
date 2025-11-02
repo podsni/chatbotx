@@ -1,5 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2 } from "lucide-react";
+import {
+    Send,
+    Loader2,
+    Search as SearchIcon,
+    Upload,
+    FileText,
+} from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
 import { MobileHeader } from "./MobileHeader";
 import { DesktopHeader } from "./DesktopHeader";
@@ -9,12 +15,23 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { chatDB, Message } from "@/lib/db";
 import { aiApi, UnifiedMessage, Provider } from "@/lib/aiApi";
 import { useToast } from "@/hooks/use-toast";
+import { useRAG } from "@/hooks/useRAG";
+import { SearchResponse, getSearchSettings } from "@/lib/searchApi";
+import {
+    ProcessedDocument,
+    formatDocumentsForRAG,
+} from "@/lib/documentProcessor";
+import { DocumentUpload } from "@/components/DocumentUpload";
 
 interface ChatAreaProps {
     onMenuClick: () => void;
     sessionId?: string;
     modelName?: string;
     provider?: Provider;
+    onSearchResults?: (results: SearchResponse) => void;
+    onSearchStart?: () => void;
+    onSearchEnd?: () => void;
+    onOpenSettings?: () => void;
 }
 
 export const ChatArea = ({
@@ -22,6 +39,10 @@ export const ChatArea = ({
     sessionId,
     modelName,
     provider,
+    onSearchResults,
+    onSearchStart,
+    onSearchEnd,
+    onOpenSettings,
 }: ChatAreaProps) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -29,7 +50,22 @@ export const ChatArea = ({
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [sessionTitle, setSessionTitle] = useState("");
+    const [isSearching, setIsSearching] = useState(false);
+    const [currentSearchResults, setCurrentSearchResults] =
+        useState<SearchResponse | null>(null);
+    const [uploadedDocuments, setUploadedDocuments] = useState<
+        ProcessedDocument[]
+    >([]);
+    const [documentPanelOpen, setDocumentPanelOpen] = useState(false);
+    const [ragEnabledForSession, setRagEnabledForSession] = useState(true);
     const { toast } = useToast();
+    const { performWebSearch, getRAGContext, shouldAutoSearch } = useRAG();
+
+    // Get RAG settings
+    const ragSettings = getSearchSettings();
+
+    // Combined RAG enabled state (global setting AND session toggle)
+    const isRagEnabled = ragSettings.ragEnabled && ragEnabledForSession;
 
     // Load messages when session changes
     useEffect(() => {
@@ -126,6 +162,33 @@ export const ChatArea = ({
             await chatDB.addMessage(userMessage);
             setMessages((prev) => [...prev, userMessage]);
 
+            // Build RAG context from multiple sources
+            let ragContext = "";
+
+            // 1. Add uploaded documents context
+            if (isRagEnabled && uploadedDocuments.length > 0) {
+                const docContext = formatDocumentsForRAG(uploadedDocuments);
+                ragContext += docContext;
+            }
+
+            // 2. Add web search context if auto-search is enabled
+            if (isRagEnabled && shouldAutoSearch(userMessageContent)) {
+                setIsSearching(true);
+                onSearchStart?.();
+                const searchResponse =
+                    await performWebSearch(userMessageContent);
+                setIsSearching(false);
+                onSearchEnd?.();
+
+                if (searchResponse && searchResponse.results.length > 0) {
+                    ragContext += getRAGContext(searchResponse);
+                    setCurrentSearchResults(searchResponse);
+                    onSearchResults?.(searchResponse);
+                } else {
+                    setCurrentSearchResults(null);
+                }
+            }
+
             // Prepare messages for API
             const apiMessages: UnifiedMessage[] = messages
                 .filter((m) => m.role === "user" || m.role === "ai")
@@ -134,10 +197,14 @@ export const ChatArea = ({
                     content: m.content,
                 }));
 
-            // Add current user message
+            // Add current user message with RAG context
+            const messageContent = ragContext
+                ? ragContext + userMessageContent
+                : userMessageContent;
+
             apiMessages.push({
                 role: "user",
-                content: userMessageContent,
+                content: messageContent,
             });
 
             // Start timing
@@ -276,8 +343,24 @@ export const ChatArea = ({
             <MobileHeader
                 onMenuClick={onMenuClick}
                 sessionTitle={sessionTitle}
+                ragEnabled={isRagEnabled}
+                isSearching={isSearching}
+                resultsCount={currentSearchResults?.results.length || 0}
+                searchEngine={ragSettings.searchEngine}
+                onOpenSettings={onOpenSettings}
+                onToggleRAG={setRagEnabledForSession}
+                documentCount={uploadedDocuments.length}
             />
-            <DesktopHeader sessionTitle={sessionTitle} />
+            <DesktopHeader
+                sessionTitle={sessionTitle}
+                ragEnabled={isRagEnabled}
+                isSearching={isSearching}
+                resultsCount={currentSearchResults?.results.length || 0}
+                searchEngine={ragSettings.searchEngine}
+                onOpenSettings={onOpenSettings}
+                onToggleRAG={setRagEnabledForSession}
+                documentCount={uploadedDocuments.length}
+            />
 
             {/* Messages */}
             <ScrollArea className="flex-1 w-full" ref={scrollAreaRef}>
@@ -330,24 +413,73 @@ export const ChatArea = ({
                 </div>
             </ScrollArea>
 
+            {/* Document Upload Panel */}
+            <DocumentUpload
+                isOpen={documentPanelOpen}
+                onClose={() => setDocumentPanelOpen(false)}
+                documents={uploadedDocuments}
+                onDocumentsChange={setUploadedDocuments}
+            />
+
             {/* Input Area */}
             <div className="border-t border-border p-2 sm:p-3 md:p-6 bg-card safe-bottom flex-shrink-0">
                 <div className="max-w-5xl mx-auto w-full">
+                    {/* Document indicator */}
+                    {uploadedDocuments.length > 0 && (
+                        <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+                            <FileText className="w-3 h-3" />
+                            <span>
+                                {uploadedDocuments.length} document
+                                {uploadedDocuments.length !== 1 ? "s" : ""} in
+                                context
+                            </span>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDocumentPanelOpen(true)}
+                                className="h-5 text-xs px-2"
+                            >
+                                Manage
+                            </Button>
+                        </div>
+                    )}
+
                     <div className="flex gap-1.5 sm:gap-2 md:gap-3 items-end">
-                        <Textarea
-                            ref={textareaRef}
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder={
-                                sessionId
-                                    ? "Type your message..."
-                                    : "Create a session first..."
-                            }
-                            rows={1}
+                        <div className="relative flex-1 min-w-0">
+                            <Textarea
+                                ref={textareaRef}
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder={
+                                    sessionId
+                                        ? "Type your message... (RAG enabled for questions)"
+                                        : "Create a session first..."
+                                }
+                                rows={1}
+                                disabled={isLoading || !sessionId}
+                                className="min-h-[40px] sm:min-h-[44px] md:min-h-[60px] max-h-28 sm:max-h-32 resize-none bg-input border-border text-xs sm:text-sm md:text-base w-full pr-10"
+                            />
+                            {shouldAutoSearch(input) && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <SearchIcon className="w-4 h-4 text-primary animate-pulse" />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Upload Document Button */}
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-10 w-10 sm:h-11 sm:w-11 md:h-[60px] md:w-[60px] flex-shrink-0"
+                            onClick={() => setDocumentPanelOpen(true)}
                             disabled={isLoading || !sessionId}
-                            className="min-h-[40px] sm:min-h-[44px] md:min-h-[60px] max-h-28 sm:max-h-32 resize-none bg-input border-border text-xs sm:text-sm md:text-base flex-1 min-w-0"
-                        />
+                            title="Upload documents for RAG"
+                        >
+                            <Upload className="w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                        </Button>
+
+                        {/* Send Button */}
                         <Button
                             size="icon"
                             className="h-10 w-10 sm:h-11 sm:w-11 md:h-[60px] md:w-[60px] flex-shrink-0"

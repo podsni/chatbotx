@@ -3,6 +3,8 @@ import { ChatSidebar } from "@/components/ChatSidebar";
 import { ChatArea } from "@/components/ChatArea";
 import { AgentMode } from "@/components/AgentMode";
 import { ASSDebateMode } from "@/components/ASSDebateMode";
+import { SettingsSidebar } from "@/components/SettingsSidebar";
+import { SearchPanel } from "@/components/SearchPanel";
 import { chatDB, Session } from "@/lib/db";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -15,7 +17,8 @@ import {
 import { ModelSelector } from "@/components/ModelSelector";
 import { Provider, aiApi } from "@/lib/aiApi";
 import { Button } from "@/components/ui/button";
-import { Zap, Users } from "lucide-react";
+import { Zap } from "lucide-react";
+import { SearchResponse } from "@/lib/searchApi";
 
 const Index = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -32,7 +35,26 @@ const Index = () => {
     const [showAgentMode, setShowAgentMode] = useState(false);
     const [showASSDebateMode, setShowASSDebateMode] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [settingsSidebarOpen, setSettingsSidebarOpen] = useState(false);
+    const [searchPanelOpen, setSearchPanelOpen] = useState(false);
+    const [searchResults, setSearchResults] = useState<SearchResponse | null>(
+        null,
+    );
+    const [searchLoading, setSearchLoading] = useState(false);
     const { toast } = useToast();
+
+    // Keyboard shortcut for settings (Ctrl/Cmd + K)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+                e.preventDefault();
+                setSettingsSidebarOpen((prev) => !prev);
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
 
     // Initialize database
     useEffect(() => {
@@ -179,18 +201,41 @@ const Index = () => {
                     sessionId={currentSessionId}
                     modelName={currentModelName}
                     provider={currentProvider}
+                    onSearchResults={(results) => {
+                        setSearchResults(results);
+                        setSearchPanelOpen(true);
+                    }}
+                    onSearchStart={() => setSearchLoading(true)}
+                    onSearchEnd={() => setSearchLoading(false)}
+                    onOpenSettings={() => setSettingsSidebarOpen(true)}
                 />
 
-                {/* Agent Mode Floating Button */}
-                <Button
-                    onClick={() => setShowAgentMode(true)}
-                    className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all z-40 bg-gradient-to-br from-primary to-accent hover:scale-110 active:scale-95 animate-pulse hover:animate-none"
-                    size="icon"
-                    title="Agent Mode - Multi-Model Comparison"
-                >
-                    <Zap className="w-6 h-6 fill-current" />
-                </Button>
+                {/* Floating Agent Mode Button */}
+                <div className="fixed bottom-6 right-6 z-40">
+                    <Button
+                        onClick={() => setShowAgentMode(true)}
+                        className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-primary to-accent hover:scale-110 active:scale-95 animate-pulse hover:animate-none"
+                        size="icon"
+                        title="Agent Mode - Multi-Model Comparison"
+                    >
+                        <Zap className="w-6 h-6 fill-current" />
+                    </Button>
+                </div>
             </div>
+
+            {/* Settings Sidebar */}
+            <SettingsSidebar
+                isOpen={settingsSidebarOpen}
+                onClose={() => setSettingsSidebarOpen(false)}
+            />
+
+            {/* Search Panel */}
+            <SearchPanel
+                isOpen={searchPanelOpen}
+                onClose={() => setSearchPanelOpen(false)}
+                searchResults={searchResults}
+                isLoading={searchLoading}
+            />
 
             {/* Agent Mode Dialog */}
             <AgentMode

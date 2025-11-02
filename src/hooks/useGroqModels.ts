@@ -19,9 +19,10 @@ interface CachedData {
 const isChatModel = (modelId: string): boolean => {
     const lowerModelId = modelId.toLowerCase();
 
-    // Exclude non-chat models
+    // Exclude non-chat models (embedding, audio, vision, etc)
     const excludeKeywords = [
         "embedding",
+        "embed",
         "audio",
         "image",
         "vision",
@@ -30,6 +31,7 @@ const isChatModel = (modelId: string): boolean => {
         "speech",
         "moderation",
         "file",
+        "distil-whisper",
     ];
 
     // Exclude if contains non-chat keywords
@@ -37,17 +39,9 @@ const isChatModel = (modelId: string): boolean => {
         return false;
     }
 
-    // Include chat models (Groq patterns)
-    const chatPatterns = [
-        "llama",
-        "mixtral",
-        "gemma",
-        "qwen",
-        "mistral",
-        "chat",
-    ];
-
-    return chatPatterns.some((pattern) => lowerModelId.includes(pattern));
+    // Include ALL other models (assume they are chat models)
+    // Groq API returns models with object: "model" which are typically chat models
+    return true;
 };
 
 const fetchGroqModels = async (): Promise<GroqModel[]> => {
@@ -61,15 +55,12 @@ const fetchGroqModels = async (): Promise<GroqModel[]> => {
     try {
         console.log("🔄 Fetching Groq chat models...");
 
-        const response = await fetch(
-            "https://api.groq.com/openai/v1/models",
-            {
-                headers: {
-                    Authorization: `Bearer ${apiKey}`,
-                    "Content-Type": "application/json",
-                },
+        const response = await fetch("https://api.groq.com/openai/v1/models", {
+            headers: {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
             },
-        );
+        });
 
         if (!response.ok) {
             throw new Error(
@@ -90,8 +81,7 @@ const fetchGroqModels = async (): Promise<GroqModel[]> => {
 
         // Filter only chat models
         const chatModels = allModels.filter(
-            (model: any) =>
-                model.object === "model" && isChatModel(model.id),
+            (model: any) => model.object === "model" && isChatModel(model.id),
         );
 
         // Map to our format
@@ -104,9 +94,14 @@ const fetchGroqModels = async (): Promise<GroqModel[]> => {
         }));
 
         console.log(
-            `✅ Fetched ${formattedModels.length} Groq chat models`,
+            `✅ Fetched ${formattedModels.length} Groq chat models (ALL available models)`,
         );
-        console.log(`   🆓 All models free in Groq free tier`);
+        console.log(
+            `   📋 Includes: Llama, Mixtral, Gemma, Qwen, DeepSeek, and more`,
+        );
+        console.log(
+            `   🚫 Filtered out: embedding, audio, vision, whisper models`,
+        );
 
         return formattedModels;
     } catch (error) {
@@ -235,9 +230,11 @@ export const formatCreatedDate = (timestamp: number): string => {
 // Utility function to get model display name
 export const getModelDisplayName = (modelId: string): string => {
     // Clean up model ID for display
-    return modelId
-        .split("/")
-        .pop()
-        ?.replace(/-/g, " ")
-        .replace(/\b\w/g, (l) => l.toUpperCase()) || modelId;
+    return (
+        modelId
+            .split("/")
+            .pop()
+            ?.replace(/-/g, " ")
+            .replace(/\b\w/g, (l) => l.toUpperCase()) || modelId
+    );
 };

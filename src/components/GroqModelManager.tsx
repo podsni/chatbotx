@@ -13,14 +13,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 export function GroqModelManager() {
-    const {
-        models,
-        isLoading,
-        error,
-        lastUpdated,
-        refreshModels,
-        totalCount,
-    } = useGroqModels();
+    const { models, isLoading, error, lastUpdated, refreshModels, totalCount } =
+        useGroqModels();
 
     const { toast } = useToast();
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -78,7 +72,8 @@ export function GroqModelManager() {
                             </Badge>
                         </h3>
                         <p className="text-xs text-slate-400 mt-0.5">
-                            Lightning fast • All free tier • Auto-updated every 24h
+                            All chat models • Lightning fast • Auto-updated
+                            every 24h
                         </p>
                     </div>
                 </div>
@@ -117,7 +112,7 @@ export function GroqModelManager() {
                     <span className="text-xs sm:text-sm text-slate-300">
                         {error
                             ? "Error loading"
-                            : `${totalCount} models ready (all free)`}
+                            : `${totalCount} chat models available`}
                     </span>
                 </div>
                 <span className="text-[10px] sm:text-xs text-slate-500">
@@ -193,7 +188,8 @@ export function GroqModelManager() {
                                             variant="outline"
                                             className="text-[9px] sm:text-xs px-2 py-0.5 bg-slate-800 text-slate-400 border-slate-600"
                                         >
-                                            📅 {formatCreatedDate(model.created)}
+                                            📅{" "}
+                                            {formatCreatedDate(model.created)}
                                         </Badge>
                                     )}
                                 </div>
@@ -218,11 +214,14 @@ export function GroqModelManager() {
             <div className="space-y-2">
                 <div className="p-2.5 sm:p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
                     <p className="text-[10px] sm:text-xs text-blue-300 leading-relaxed">
-                        💡 <strong className="font-semibold">Tip:</strong>{" "}
-                        Groq provides ultra-fast inference for all models in their free tier.
+                        💡{" "}
+                        <strong className="font-semibold">All Models:</strong>{" "}
+                        Showing ALL chat models from Groq API (includes Llama,
+                        Mixtral, Gemma, Qwen, DeepSeek, and more).
                         <span className="hidden sm:inline">
                             {" "}
-                            Perfect for real-time applications and rapid prototyping.
+                            Non-chat models (embedding, audio, vision) are
+                            automatically filtered out.
                         </span>
                     </p>
                 </div>
@@ -242,11 +241,16 @@ export function GroqModelManager() {
 
                 <div className="p-2.5 sm:p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                     <p className="text-[10px] sm:text-xs text-green-300 leading-relaxed">
-                        🎉 <strong className="font-semibold">Free Tier:</strong>{" "}
-                        All {totalCount} models are available in Groq's free tier.
+                        🎉{" "}
+                        <strong className="font-semibold">
+                            Complete List:
+                        </strong>{" "}
+                        Displaying all {totalCount} chat-capable models from
+                        Groq.
                         <span className="hidden sm:inline">
                             {" "}
-                            No credit card required. Start building today!
+                            List auto-updates to include new models as they
+                            become available!
                         </span>
                     </p>
                 </div>

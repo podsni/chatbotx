@@ -46,6 +46,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OpenRouterModelManager } from "@/components/OpenRouterModelManager";
 import { TogetherModelManager } from "@/components/TogetherModelManager";
 import { GroqModelManager } from "@/components/GroqModelManager";
+import { GeneralSettings } from "@/components/GeneralSettings";
 import { useTogetherModels, formatPrice } from "@/hooks/useTogetherModels";
 
 interface ChatSidebarProps {
@@ -962,6 +963,7 @@ export const ChatSidebar = ({
                         >
                             <div className="flex-1 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 pb-4">
                                 <div className="space-y-4">
+                                    <GeneralSettings />
                                     <GroqModelManager />
                                     <TogetherModelManager />
                                     <OpenRouterModelManager />

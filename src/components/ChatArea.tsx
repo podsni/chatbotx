@@ -352,15 +352,16 @@ Now, please answer the user's question using the document context provided above
                 <MobileHeader
                     onMenuClick={onMenuClick}
                     sessionTitle={sessionTitle}
+                    ragEnabled={ragEnabledForSession}
+                    uploadedDocumentCount={uploadedDocuments.length}
+                    onOpenDocuments={() => setDocumentPanelOpen(true)}
+                    onOpenSettings={onOpenSettings}
                 />
             </div>
             <div className="hidden lg:block">
                 <DesktopHeader
                     sessionTitle={sessionTitle}
                     ragEnabled={ragEnabledForSession}
-                    onToggleRAG={() =>
-                        setRagEnabledForSession(!ragEnabledForSession)
-                    }
                     uploadedDocumentCount={uploadedDocuments.length}
                     onOpenDocuments={() => setDocumentPanelOpen(true)}
                     onOpenSettings={onOpenSettings}

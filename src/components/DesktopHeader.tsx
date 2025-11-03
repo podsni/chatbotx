@@ -1,4 +1,4 @@
-import { FileText, Settings } from "lucide-react";
+import { FileText, Settings, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -8,6 +8,7 @@ interface DesktopHeaderProps {
     uploadedDocumentCount?: number;
     onOpenDocuments?: () => void;
     onOpenSettings?: () => void;
+    onCopyMarkdown?: () => void;
 }
 
 export const DesktopHeader = ({
@@ -16,6 +17,7 @@ export const DesktopHeader = ({
     uploadedDocumentCount = 0,
     onOpenDocuments,
     onOpenSettings,
+    onCopyMarkdown,
 }: DesktopHeaderProps) => {
     return (
         <div className="border-b border-border px-6 py-2.5 bg-card">
@@ -60,6 +62,18 @@ export const DesktopHeader = ({
 
                 {/* Right side - Actions */}
                 <div className="flex items-center gap-2">
+                    {/* Copy Markdown Button */}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onCopyMarkdown}
+                        className="gap-2 h-8 text-xs"
+                        title="Copy chat as Markdown"
+                    >
+                        <Copy className="w-3.5 h-3.5" />
+                        Copy
+                    </Button>
+
                     {/* Documents Button */}
                     <Button
                         variant="outline"

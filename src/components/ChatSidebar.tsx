@@ -49,6 +49,19 @@ import { GroqModelManager } from "@/components/GroqModelManager";
 import { GeneralSettings } from "@/components/GeneralSettings";
 import { useTogetherModels, formatPrice } from "@/hooks/useTogetherModels";
 
+interface EnhancedModel {
+    id: string;
+    name: string;
+    description: string;
+    speed: string;
+    features: string[];
+    pricing?: {
+        input: number;
+        output: number;
+    };
+    isFree?: boolean;
+}
+
 interface ChatSidebarProps {
     isOpen?: boolean;
     onClose?: () => void;
@@ -326,17 +339,7 @@ export const ChatSidebar = ({
 
     const renderProviderSection = (
         provider: Provider,
-        models: Array<{
-            id: string;
-            name: string;
-            description: string;
-            speed: string;
-            features: string[];
-            pricing?: {
-                input: number;
-                output: number;
-            };
-        }>,
+        models: EnhancedModel[],
         providerName: string,
     ) => {
         // Enhance Together models with pricing from hook
@@ -393,7 +396,7 @@ export const ChatSidebar = ({
 
                 {isExpanded && (
                     <div className="mt-1 space-y-1.5 ml-2 sm:ml-2">
-                        {enhancedModels.map((model: any) => (
+                        {enhancedModels.map((model: EnhancedModel) => (
                             <button
                                 key={model.id}
                                 onClick={() =>

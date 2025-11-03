@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
-import { Settings, X, FileText, ChevronRight } from "lucide-react";
+import {
+    Settings,
+    X,
+    FileText,
+    ChevronRight,
+    Zap,
+    MessagesSquare,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -15,9 +22,16 @@ import {
 interface SettingsSidebarProps {
     isOpen: boolean;
     onClose: () => void;
+    onOpenAgentMode?: () => void;
+    onOpenASSDebateMode?: () => void;
 }
 
-export const SettingsSidebar = ({ isOpen, onClose }: SettingsSidebarProps) => {
+export const SettingsSidebar = ({
+    isOpen,
+    onClose,
+    onOpenAgentMode,
+    onOpenASSDebateMode,
+}: SettingsSidebarProps) => {
     const [ragEnabled, setRagEnabled] = useState(false);
 
     // Load settings from localStorage
@@ -76,6 +90,59 @@ export const SettingsSidebar = ({ isOpen, onClose }: SettingsSidebarProps) => {
                     {/* Content */}
                     <ScrollArea className="flex-1">
                         <div className="p-4 space-y-6">
+                            {/* Special Features */}
+                            <div className="space-y-3">
+                                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                                    Special Features
+                                </h3>
+
+                                {/* Agent Mode Button */}
+                                <Button
+                                    onClick={() => {
+                                        onOpenAgentMode?.();
+                                        onClose();
+                                    }}
+                                    className="w-full justify-start gap-3 h-auto py-4 bg-gradient-to-br from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-md hover:shadow-lg transition-all"
+                                    size="lg"
+                                >
+                                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-white/20">
+                                        <Zap className="w-5 h-5 fill-current" />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <div className="font-semibold">
+                                            Agent Mode
+                                        </div>
+                                        <div className="text-xs opacity-90">
+                                            Multi-model comparison
+                                        </div>
+                                    </div>
+                                </Button>
+
+                                {/* ASS Debate Mode Button */}
+                                <Button
+                                    onClick={() => {
+                                        onOpenASSDebateMode?.();
+                                        onClose();
+                                    }}
+                                    className="w-full justify-start gap-3 h-auto py-4 bg-gradient-to-br from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-md hover:shadow-lg transition-all"
+                                    size="lg"
+                                >
+                                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-white/20">
+                                        <MessagesSquare className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <div className="font-semibold">
+                                            ASS Debate Mode
+                                        </div>
+                                        <div className="text-xs opacity-90">
+                                            Multi-perspective debates
+                                        </div>
+                                    </div>
+                                </Button>
+                            </div>
+
+                            <Separator />
+
                             {/* RAG Settings */}
                             <Accordion
                                 type="single"

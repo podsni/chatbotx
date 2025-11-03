@@ -43,6 +43,107 @@ export const ChatArea = ({
     const [ragEnabledForSession, setRagEnabledForSession] = useState(true);
     const { toast } = useToast();
 
+    // Copy markdown function
+    const handleCopyMarkdown = async () => {
+        if (!sessionId || messages.length === 0) {
+            toast({
+                title: "No Messages",
+                description: "This chat session has no messages to copy.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        try {
+            const session = await chatDB.getSession(sessionId);
+
+            // Format messages as markdown
+            let markdown = `# Chat Session: ${session?.title || "Untitled"}\n\n`;
+            markdown += `**Model:** ${modelName || "Unknown"}\n`;
+            markdown += `**Provider:** ${provider || "Unknown"}\n`;
+            markdown += `**Date:** ${new Date(session?.timestamp || Date.now()).toLocaleString()}\n\n`;
+            markdown += `---\n\n`;
+
+            messages.forEach((message) => {
+                const role = message.role === "user" ? "👤 User" : "🤖 AI";
+                markdown += `## ${role}\n\n`;
+                markdown += `${message.content}\n\n`;
+
+                if (message.metadata) {
+                    markdown += `<details>\n<summary>Metadata</summary>\n\n`;
+                    if (message.metadata.duration)
+                        markdown += `- Duration: ${message.metadata.duration}\n`;
+                    if (message.metadata.tokens)
+                        markdown += `- Tokens: ${message.metadata.tokens}\n`;
+                    if (message.metadata.speed)
+                        markdown += `- Speed: ${message.metadata.speed}\n`;
+                    markdown += `\n</details>\n\n`;
+                }
+
+                markdown += `---\n\n`;
+            });
+
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                    await navigator.clipboard.writeText(markdown);
+                    toast({
+                        title: "Copied!",
+                        description:
+                            "Chat session copied as markdown to clipboard.",
+                    });
+                    return;
+                } catch (clipboardError) {
+                    console.warn(
+                        "Clipboard API failed, trying fallback:",
+                        clipboardError,
+                    );
+                }
+            }
+
+            // Fallback method using textarea
+            const textArea = document.createElement("textarea");
+            textArea.value = markdown;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand("copy");
+                if (successful) {
+                    toast({
+                        title: "Copied!",
+                        description:
+                            "Chat session copied as markdown to clipboard.",
+                    });
+                } else {
+                    throw new Error("execCommand failed");
+                }
+            } catch (fallbackError) {
+                console.error("Fallback copy failed:", fallbackError);
+                // Show markdown in a modal as last resort
+                toast({
+                    title: "Copy Failed",
+                    description:
+                        "Please grant clipboard permission or copy manually.",
+                    variant: "destructive",
+                });
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        } catch (error) {
+            console.error("Error copying markdown:", error);
+            toast({
+                title: "Copy Failed",
+                description: "An error occurred. Please try again.",
+                variant: "destructive",
+            });
+        }
+    };
+
     // Get RAG settings from localStorage
     const getRAGSettings = () => {
         const settings = localStorage.getItem("chatbotx-settings");
@@ -356,6 +457,7 @@ Now, please answer the user's question using the document context provided above
                     uploadedDocumentCount={uploadedDocuments.length}
                     onOpenDocuments={() => setDocumentPanelOpen(true)}
                     onOpenSettings={onOpenSettings}
+                    onCopyMarkdown={handleCopyMarkdown}
                 />
             </div>
             <div className="hidden lg:block">
@@ -365,6 +467,7 @@ Now, please answer the user's question using the document context provided above
                     uploadedDocumentCount={uploadedDocuments.length}
                     onOpenDocuments={() => setDocumentPanelOpen(true)}
                     onOpenSettings={onOpenSettings}
+                    onCopyMarkdown={handleCopyMarkdown}
                 />
             </div>
 

@@ -1,4 +1,4 @@
-import { Menu, FileText, Settings } from "lucide-react";
+import { Menu, FileText, Settings, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -9,6 +9,7 @@ interface MobileHeaderProps {
     uploadedDocumentCount?: number;
     onOpenDocuments?: () => void;
     onOpenSettings?: () => void;
+    onCopyMarkdown?: () => void;
 }
 
 export const MobileHeader = ({
@@ -18,6 +19,7 @@ export const MobileHeader = ({
     uploadedDocumentCount = 0,
     onOpenDocuments,
     onOpenSettings,
+    onCopyMarkdown,
 }: MobileHeaderProps) => {
     return (
         <div className="border-b border-border bg-card">
@@ -51,6 +53,17 @@ export const MobileHeader = ({
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* Copy Markdown Button */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onCopyMarkdown}
+                        className="h-8 w-8"
+                        title="Copy as Markdown"
+                    >
+                        <Copy className="h-4 w-4" />
+                    </Button>
+
                     {/* Documents Button with counter badge */}
                     <Button
                         variant="ghost"

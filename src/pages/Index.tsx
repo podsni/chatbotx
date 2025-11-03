@@ -17,7 +17,6 @@ import {
 import { ModelSelector } from "@/components/ModelSelector";
 import { Provider, aiApi } from "@/lib/aiApi";
 import { Button } from "@/components/ui/button";
-import { Zap } from "lucide-react";
 
 const Index = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -198,24 +197,14 @@ const Index = () => {
                     provider={currentProvider}
                     onOpenSettings={() => setSettingsSidebarOpen(true)}
                 />
-
-                {/* Floating Agent Mode Button */}
-                <div className="fixed bottom-6 right-6 z-40">
-                    <Button
-                        onClick={() => setShowAgentMode(true)}
-                        className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-primary to-accent hover:scale-110 active:scale-95 animate-pulse hover:animate-none"
-                        size="icon"
-                        title="Agent Mode - Multi-Model Comparison"
-                    >
-                        <Zap className="w-6 h-6 fill-current" />
-                    </Button>
-                </div>
             </div>
 
             {/* Settings Sidebar */}
             <SettingsSidebar
                 isOpen={settingsSidebarOpen}
                 onClose={() => setSettingsSidebarOpen(false)}
+                onOpenAgentMode={() => setShowAgentMode(true)}
+                onOpenASSDebateMode={() => setShowASSDebateMode(true)}
             />
 
             {/* Agent Mode Dialog */}

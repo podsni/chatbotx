@@ -2,6 +2,135 @@
 
 All notable changes to ChatBotX will be documented in this file.
 
+## [1.3.0] - 2025 - Agent Mode Relocation & Copy Markdown Feature
+
+### 🚀 New Features
+
+#### Copy Markdown Export
+- **Chat Export**: Export entire chat sessions in markdown format
+- **One-Click Copy**: Copy to clipboard directly from session dropdown menu
+- **Rich Formatting**: Includes session metadata, timestamps, and message details
+- **Metadata Preservation**: Duration, tokens, and speed data included in collapsible sections
+- **User-Friendly Format**: Clean markdown with emoji indicators (👤 User, 🤖 AI)
+- **Universal Compatibility**: Works with all markdown renderers and editors
+
+**Use Cases:**
+- Share conversations with colleagues
+- Create documentation from AI interactions
+- Archive important chat sessions
+- Reference conversations in external documents
+- Create training materials and tutorials
+
+#### Agent Mode Relocation
+- **Moved to Settings**: Agent Mode and ASS Debate Mode now accessible via Settings Sidebar
+- **Cleaner Interface**: Removed floating button from main chat area
+- **Special Features Section**: New dedicated section for advanced features
+- **Better Organization**: All power features centralized in one location
+- **Mobile Optimized**: More screen real estate on mobile devices
+
+### 🎨 UI/UX Improvements
+
+#### Cleaner Chat Interface
+- **No Floating Elements**: Removed distracting floating Agent Mode button
+- **Unobstructed View**: Full chat area visible without overlays
+- **Professional Polish**: Cleaner, more focused user experience
+- **Reduced Visual Clutter**: Better focus on chat content
+
+#### Settings Sidebar Enhancement
+- **Special Features Section**: New prominently styled section for Agent and Debate modes
+- **Gradient Buttons**: Eye-catching gradient backgrounds for special features
+- **Icon Integration**: Clear visual indicators with icons and descriptions
+- **Quick Access**: One keyboard shortcut away (Ctrl/Cmd + K)
+
+### 🔧 Technical Improvements
+
+#### Code Quality
+- **TypeScript Types**: Added `EnhancedModel` interface for better type safety
+- **Error Handling**: Robust error handling for clipboard operations
+- **Toast Notifications**: User feedback for all copy operations
+- **Database Integration**: Efficient message retrieval from IndexedDB
+
+#### Bug Fixes
+- **AgentMode Variable Fix**: Fixed `sessionId` variable reference error in `updateSessionTitle`
+- **Type Safety**: Eliminated `any` types in ChatSidebar model rendering
+
+### 📝 Documentation
+- **AGENT_COPY_FEATURE.md**: Complete technical documentation in English
+- **PERUBAHAN_TERBARU.md**: User-friendly guide in Indonesian
+- **Code Comments**: Improved inline documentation
+
+### ⌨️ Keyboard Shortcuts
+- `Ctrl/Cmd + K`: Quick access to Settings (and Agent Mode)
+
+### 🌐 Browser Compatibility
+- **Clipboard API**: Full support in Chrome, Firefox, Safari, and mobile browsers
+- **Secure Context**: Works on HTTPS and localhost
+- **Fallback Handling**: Graceful error messages if clipboard unavailable
+
+---
+
+## [1.2.0] - 2024 - Mobile-Optimized RAG Interface
+
+### 🎯 Major UI/UX Improvements
+
+#### Mobile Header Optimization
+- **60% Size Reduction**: Mobile header reduced from 80-100px to 32-40px
+- **Single Row Design**: Ultra-compact layout with inline badges
+- **Smart Status Display**: RAG badge only shows when active with documents
+- **Touch-Friendly**: 32x32px minimum touch targets for all buttons
+- **Document Counter**: Compact superscript badge on documents icon
+
+#### RAG Control Centralization
+- **Settings Panel Integration**: RAG toggle moved to General Settings
+- **Global Control**: Single source of truth for RAG enable/disable
+- **Auto-Save**: Settings automatically persist to localStorage
+- **Informative UI**: Descriptions and tips for all settings
+
+#### Desktop Header Cleanup
+- **Cleaner Layout**: Removed toggle switch, kept status display
+- **Compact Badges**: Document count as small inline badges
+- **Reduced Height**: Header reduced from 48px to 40px
+- **Better Spacing**: Improved visual hierarchy and spacing
+
+#### New Components
+- **GeneralSettings**: Comprehensive settings panel with RAG control
+  - Enable/Disable RAG globally
+  - Auto-save sessions toggle
+  - Confirm before delete toggle
+  - Warning messages and helpful tips
+  - Fully responsive design
+
+### 📱 Mobile-First Improvements
+- **Responsive Typography**: Scaled text sizes (12px mobile, 14px desktop)
+- **Minimal Padding**: Optimized spacing (px-3 py-2 on mobile)
+- **Compact Icons**: 16px icons for cleaner look
+- **Space Efficiency**: More content visible without scrolling
+
+### 🎨 Visual Enhancements
+- **Inline Badges**: RAG status as compact badge instead of full text
+- **Smart Visibility**: Optional elements auto-hide when not needed
+- **Color Coding**: Green pulse for active, gray for disabled
+- **Professional Polish**: Consistent sizing and spacing across breakpoints
+
+### 📖 Documentation
+- **RAG_TOGGLE_FEATURE.md**: Complete technical documentation
+- **RAG_MOBILE_OPTIMIZED.md**: Quick reference guide
+- **MOBILE_RAG_SUMMARY.md**: Implementation summary
+
+### 🔧 Technical Changes
+- Removed `onToggleRAG` prop from headers (read-only display)
+- Centralized RAG control in Settings Panel
+- Improved localStorage integration
+- Better component separation of concerns
+
+### 🚀 Performance Benefits
+- Smaller DOM tree (fewer nodes)
+- Less memory usage on mobile
+- Faster render times
+- Improved scroll performance
+
+---
+
 ## [1.1.0] - 2024 - RAG & Web Search Integration
 
 ### 🎉 Major Features Added

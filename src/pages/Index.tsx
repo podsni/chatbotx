@@ -4,7 +4,7 @@ import { ChatArea } from "@/components/ChatArea";
 import { AgentMode } from "@/components/AgentMode";
 import { ASSDebateMode } from "@/components/ASSDebateMode";
 import { SettingsSidebar } from "@/components/SettingsSidebar";
-import { SearchPanel } from "@/components/SearchPanel";
+
 import { chatDB, Session } from "@/lib/db";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -18,7 +18,6 @@ import { ModelSelector } from "@/components/ModelSelector";
 import { Provider, aiApi } from "@/lib/aiApi";
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
-import { SearchResponse } from "@/lib/searchApi";
 
 const Index = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,11 +35,7 @@ const Index = () => {
     const [showASSDebateMode, setShowASSDebateMode] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     const [settingsSidebarOpen, setSettingsSidebarOpen] = useState(false);
-    const [searchPanelOpen, setSearchPanelOpen] = useState(false);
-    const [searchResults, setSearchResults] = useState<SearchResponse | null>(
-        null,
-    );
-    const [searchLoading, setSearchLoading] = useState(false);
+
     const { toast } = useToast();
 
     // Keyboard shortcut for settings (Ctrl/Cmd + K)
@@ -201,12 +196,6 @@ const Index = () => {
                     sessionId={currentSessionId}
                     modelName={currentModelName}
                     provider={currentProvider}
-                    onSearchResults={(results) => {
-                        setSearchResults(results);
-                        setSearchPanelOpen(true);
-                    }}
-                    onSearchStart={() => setSearchLoading(true)}
-                    onSearchEnd={() => setSearchLoading(false)}
                     onOpenSettings={() => setSettingsSidebarOpen(true)}
                 />
 
@@ -227,14 +216,6 @@ const Index = () => {
             <SettingsSidebar
                 isOpen={settingsSidebarOpen}
                 onClose={() => setSettingsSidebarOpen(false)}
-            />
-
-            {/* Search Panel */}
-            <SearchPanel
-                isOpen={searchPanelOpen}
-                onClose={() => setSearchPanelOpen(false)}
-                searchResults={searchResults}
-                isLoading={searchLoading}
             />
 
             {/* Agent Mode Dialog */}

@@ -1,100 +1,97 @@
-import { Copy, FileText, MoreVertical, Settings, Database } from "lucide-react";
+import { FileText, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { RAGIndicator } from "@/components/RAGIndicator";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 
 interface DesktopHeaderProps {
     sessionTitle: string;
     ragEnabled?: boolean;
-    isSearching?: boolean;
-    resultsCount?: number;
-    searchEngine?: "duckduckgo" | "brave";
+    onToggleRAG?: () => void;
+    uploadedDocumentCount?: number;
+    onOpenDocuments?: () => void;
     onOpenSettings?: () => void;
-    onToggleRAG?: (enabled: boolean) => void;
-    documentCount?: number;
 }
 
 export const DesktopHeader = ({
     sessionTitle,
-    ragEnabled = false,
-    isSearching = false,
-    resultsCount = 0,
-    searchEngine,
-    onOpenSettings,
+    ragEnabled = true,
     onToggleRAG,
-    documentCount = 0,
+    uploadedDocumentCount = 0,
+    onOpenDocuments,
+    onOpenSettings,
 }: DesktopHeaderProps) => {
     return (
-        <div className="hidden lg:flex border-b border-border px-6 py-3 items-center justify-between bg-card">
-            <div className="flex items-center gap-4">
-                <div className="text-sm text-muted-foreground">
-                    Session:{" "}
-                    <span className="text-foreground">{sessionTitle}</span>
-                </div>
-                <RAGIndicator
-                    isEnabled={ragEnabled}
-                    isSearching={isSearching}
-                    resultsCount={resultsCount}
-                    searchEngine={searchEngine}
-                    documentCount={documentCount}
-                />
-            </div>
-            <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" className="text-xs">
-                    <Copy className="w-3 h-3 mr-1" />
-                    Copy All
-                </Button>
-                <Button variant="ghost" size="sm" className="text-xs">
-                    <FileText className="w-3 h-3 mr-1" />
-                    Summarize
-                </Button>
+        <div className="border-b border-border px-6 py-3 bg-card">
+            <div className="flex items-center justify-between">
+                {/* Left side - Session info */}
+                <div className="flex items-center gap-4">
+                    <div className="text-sm">
+                        <span className="text-muted-foreground">Session: </span>
+                        <span className="text-foreground font-medium">
+                            {sessionTitle}
+                        </span>
+                    </div>
 
-                {/* Three Dots Menu */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="w-4 h-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-
-                        {/* RAG Toggle */}
-                        <div className="flex items-center justify-between px-2 py-2 hover:bg-accent rounded-sm cursor-pointer">
-                            <div className="flex items-center gap-2">
-                                <Database className="w-4 h-4" />
-                                <span className="text-sm">
-                                    Enable RAG Search
-                                </span>
-                            </div>
-                            <Switch
-                                checked={ragEnabled}
-                                onCheckedChange={onToggleRAG}
-                                onClick={(e) => e.stopPropagation()}
-                            />
-                        </div>
-
-                        <DropdownMenuSeparator />
-
-                        {/* Settings */}
-                        <DropdownMenuItem onClick={onOpenSettings}>
-                            <Settings className="w-4 h-4 mr-2" />
-                            Settings
-                            <span className="ml-auto text-xs text-muted-foreground">
-                                ⌘K
+                    {/* RAG Status Indicator */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border">
+                        <div
+                            className={`w-2 h-2 rounded-full ${
+                                ragEnabled
+                                    ? "bg-green-500 animate-pulse"
+                                    : "bg-gray-400"
+                            }`}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                            RAG {ragEnabled ? "Enabled" : "Disabled"}
+                        </span>
+                        {uploadedDocumentCount > 0 && (
+                            <span className="text-xs text-primary font-medium">
+                                • {uploadedDocumentCount} doc
+                                {uploadedDocumentCount !== 1 ? "s" : ""}
                             </span>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                        )}
+                    </div>
+                </div>
+
+                {/* Right side - Actions */}
+                <div className="flex items-center gap-3">
+                    {/* RAG Toggle */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-background/50">
+                        <span className="text-xs text-muted-foreground">
+                            RAG
+                        </span>
+                        <Switch
+                            checked={ragEnabled}
+                            onCheckedChange={onToggleRAG}
+                            className="scale-75"
+                        />
+                    </div>
+
+                    {/* Documents Button */}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onOpenDocuments}
+                        className="gap-2"
+                    >
+                        <FileText className="w-4 h-4" />
+                        Documents
+                        {uploadedDocumentCount > 0 && (
+                            <span className="px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                                {uploadedDocumentCount}
+                            </span>
+                        )}
+                    </Button>
+
+                    {/* Settings Button */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onOpenSettings}
+                        title="Settings (Ctrl+K)"
+                    >
+                        <Settings className="w-4 h-4" />
+                    </Button>
+                </div>
             </div>
         </div>
     );

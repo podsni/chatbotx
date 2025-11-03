@@ -1,24 +1,13 @@
 import { Bot, User } from "lucide-react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
+import { Message } from "@/lib/db";
 
 interface ChatMessageProps {
-    role: "ai" | "user";
-    content: string;
-    modelName?: string;
-    metadata?: {
-        duration?: string;
-        ttft?: string;
-        tokens?: string;
-        speed?: string;
-    };
+    message: Message;
 }
 
-export const ChatMessage = ({
-    role,
-    content,
-    modelName,
-    metadata,
-}: ChatMessageProps) => {
+export const ChatMessage = ({ message }: ChatMessageProps) => {
+    const { role, content, modelName, metadata } = message;
     return (
         <div
             className={`flex gap-2 sm:gap-2.5 md:gap-3 mb-3 sm:mb-4 md:mb-6 px-1 ${role === "user" ? "justify-end" : "justify-start"}`}

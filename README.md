@@ -1,399 +1,440 @@
-# ChatBotX - Multi-Provider AI Chat Application
+# ChatBotX - Multi-Provider AI Chat with RAG Document Analysis
 
-A modern chat application supporting multiple AI providers (Poe, Together AI, Groq, OpenRouter) with session management and IndexedDB storage.
+A modern AI chat application with powerful RAG (Retrieval-Augmented Generation) capabilities. Upload your documents and get accurate, context-aware answers from multiple AI providers.
 
-## Features
+## 🌟 Key Features
 
-- 🤖 **Multiple AI Providers**: Support for Poe, Together AI, Groq, and OpenRouter
-- 🆓 **Free Models**: Access free AI models via OpenRouter
-- 💾 **Session Management**: Create, switch, and delete chat sessions
-- 🗄️ **Local Storage**: All sessions and messages stored in IndexedDB
+- 🤖 **Multiple AI Providers**: Support for Groq, OpenRouter, Together AI, and Poe
+- 📄 **RAG Document Upload**: Upload PDF, Word, TXT, Markdown, and more
+- 🎯 **Context-Aware Responses**: AI uses your documents as primary source
+- 💾 **Session Management**: Create, switch, and manage chat sessions
+- 🗄️ **Local Storage**: All data stored securely in IndexedDB (browser-side)
 - 📱 **Responsive Design**: Works seamlessly on desktop and mobile
 - ⚡ **Real-time Streaming**: Get AI responses in real-time
-- 📊 **Metadata Display**: View response time, tokens, and speed
-- 🔍 **RAG & Web Search**: Enhanced responses with real-time web search
-- 📄 **Document Upload**: Upload documents (TXT, MD, JSON, HTML, CSV) for RAG
-- 🌐 **DuckDuckGo & Brave Search**: Multiple search engine support
-- ⚙️ **Settings Sidebar**: Easy configuration for all features
-- 🎯 **Auto-Search**: Automatically search for questions and queries
-- 📊 **Search Panel**: Beautiful animated display of search results
-- 🔘 **Manual RAG Control**: Toggle RAG on/off per chat session
-- 📎 **Context Management**: Combine web search + documents for best results
+- 🔒 **Privacy First**: Document processing happens locally in your browser
+- 📊 **Smart Citations**: AI references specific documents in responses
+- 🆓 **Free Models Available**: Access free AI models via OpenRouter
 
-## Setup
+## 🚀 What is RAG?
+
+**RAG (Retrieval-Augmented Generation)** enhances AI responses by allowing you to upload your own documents. Instead of relying only on training data, the AI references your specific documents to provide accurate, context-aware answers.
+
+**Perfect for:**
+- 📊 Analyzing reports and data
+- 📚 Research and study assistance
+- 💼 Business document analysis
+- 📝 Content synthesis and summarization
+- 🔍 Information retrieval and fact-checking
+
+## 📋 Quick Start
 
 ### 1. Install Dependencies
 
-```sh
+```bash
 npm install
 ```
 
 ### 2. Configure API Keys
 
-Create a `.env` file in the root directory with your API keys:
+Create a `.env` file in the root directory:
 
-```sh
-# Poe API (Optional)
-VITE_POE_API_KEY=your_poe_api_key_here
+```env
+# At least one API key is required
+
+# Groq API (Recommended - Fast and Free tier available)
+VITE_GROQ_API_KEY=your_groq_api_key_here
+
+# OpenRouter API (Many free models available)
+VITE_OPENROUTER_API_KEY=your_openrouter_api_key_here
 
 # Together AI API (Optional)
 VITE_TOGETHER_API_KEY=your_together_api_key_here
 
-# Groq API (Optional)
-VITE_GROQ_API_KEY=your_groq_api_key_here
+# Poe API (Optional)
+VITE_POE_API_KEY=your_poe_api_key_here
 
-# OpenRouter API (Recommended for free models)
-VITE_OPENROUTER_API_KEY=your_openrouter_api_key_here
-
-# Optional: Site info for OpenRouter leaderboard
+# Optional: Site info for OpenRouter
 VITE_SITE_URL=http://localhost:5173
-VITE_SITE_NAME=ChatbotX
-
-# Optional: Brave Search API for RAG (search is also available via DuckDuckGo without API key)
-# Get your key at: https://brave.com/search/api/
-VITE_BRAVE_API_KEY=your_brave_api_key_here
+VITE_SITE_NAME=ChatBotX
 ```
 
 **Get your API keys:**
-- **Poe**: https://poe.com/api_key
+- **Groq**: https://console.groq.com/ (Free tier available!)
+- **OpenRouter**: https://openrouter.ai/keys (Many free models!)
 - **Together AI**: https://api.together.xyz/
-- **Groq**: https://console.groq.com/
-- **OpenRouter**: https://openrouter.ai/keys (Free tier available!)
-
-**Note**: You only need to configure the providers you want to use. At least one API key is required.
+- **Poe**: https://poe.com/api_key
 
 ### 3. Start Development Server
 
-```sh
+```bash
 npm run dev
 ```
 
-## Available Models
+### 4. Start Chatting!
 
-### Poe Models
-- **GPT-5-mini**: Balanced performance and speed
-- **GPT-5-nano**: Fast and lightweight responses
-- **Grok-4 Fast Reasoning**: Advanced reasoning capabilities
-- **Gemini 2.5 Flash Lite**: Google's fast model
+1. Create a new chat session
+2. Select your preferred AI model
+3. Upload documents (optional but recommended for RAG)
+4. Ask questions and get AI-powered answers!
 
-### Together AI Models
-- **GPT-OSS-20B**: Open source GPT with 20B parameters
-- **Qwen3-Next-80B**: Powerful 80B model from Alibaba
-- **Llama-4-Maverick-17B**: Meta's Llama 4 variant
-- **GLM-4.5-Air**: Lightweight and efficient
+## 📚 Using RAG (Document Upload)
 
-### Groq Models (Lightning Fast)
-- **GPT-OSS-20B**: 20B model on Groq LPU
-- **Groq-Compound**: Groq's optimized compound model
-- **Llama-3.1-8B-Instant**: Ultra-fast instant responses
-- **GPT-OSS-120B**: Large 120B model for complex tasks
-- **Kimi-K2-Instruct**: Instruction-tuned precision model
+### Step 1: Upload Documents
 
-### OpenRouter Models (FREE!)
-- **Nvidia Nemotron Nano 12B**: Free with vision capabilities
-- **MiniMax M2**: Free with great performance
-- **Llama 3.2 3B**: Free Meta model
-- **Llama 3.1 8B**: Free with solid performance
-- **Mistral 7B**: Free with excellent quality
-- **And many more free models!**
+1. Click the **📎 Upload** button in the chat input area
+2. **Drag & drop** files or click to browse
+3. Supported formats: PDF, DOC, DOCX, TXT, MD, CSV, JSON, HTML, RTF
+4. Max file size: 10 MB per file
+5. Documents are processed automatically
 
-## OpenRouter Free Models
+### Step 2: Ask Questions
 
-OpenRouter provides access to many **completely free** AI models! Here's how to use them:
+Once documents are uploaded:
+- Type your question naturally
+- AI automatically uses documents as context
+- Responses include citations (e.g., "According to Document 1...")
+- Documents remain active throughout the session
 
-### 1. Get Your Free API Key
-Visit https://openrouter.ai/keys and create a free account. No credit card required!
+### Step 3: Manage Documents
 
-### 2. Add to .env File
-```sh
-VITE_OPENROUTER_API_KEY=sk-or-v1-your-api-key-here
+- View all uploaded documents in the management panel
+- Remove documents you no longer need
+- Upload additional documents at any time
+- Toggle RAG on/off in the header if needed
+
+### Example Usage
+
+```
+📄 Upload: quarterly_report_q4.pdf
+
+💬 You: What was our revenue growth in Q4?
+
+🤖 AI: According to Document 1 (quarterly_report_q4.pdf), 
+the revenue growth in Q4 was 32% year-over-year, 
+increasing from $12.5M to $16.5M. The document attributes 
+this growth primarily to the launch of the new product line 
+and expansion into the European market.
 ```
 
-### 3. Restart Development Server
-```sh
-npm run dev
-```
+## 🎨 Available AI Models
 
-### 4. Access Free Models
-Look for models with the "Free" label in the sidebar. These models include:
-- Meta Llama models (3.1 8B, 3.2 3B)
-- Mistral 7B Instruct
-- Nvidia Nemotron Nano 12B
-- MiniMax M2
+### Groq (Lightning Fast ⚡)
+- **Llama 3.1 8B Instant**: Ultra-fast responses
+- **Llama 3.1 70B Versatile**: Powerful and versatile
+- **Mixtral 8x7B**: Excellent reasoning
+- **Gemma 2 9B**: Google's efficient model
+
+### OpenRouter (Many Free! 🆓)
+- **Llama 3.2 3B Free**: Fast and free
+- **Llama 3.1 8B Free**: Solid performance
+- **Mistral 7B Free**: Great quality
+- **MiniMax M2 Free**: Excellent free model
+- **Nvidia Nemotron Nano 12B**: Free with vision
 - And many more!
 
-**Tip**: Free models on OpenRouter have rate limits but are perfect for development and personal use!
+### Together AI
+- **Llama 3.1 8B Turbo**: Fast inference
+- **Qwen 2.5 7B**: High quality
+- **Mistral 7B Instruct**: Instruction-tuned
 
-## Usage
+### Poe
+- **GPT-5-mini**: Balanced performance
+- **Gemini 2.5 Flash**: Google's fast model
+- **Claude Sonnet**: Advanced reasoning
 
-### Basic Chat
-1. **Select a Provider**: Choose from Poe, Together AI, Groq, or OpenRouter in the sidebar
-2. **Create a New Chat**: Click the "+ Chat" button next to any model
-3. **Switch Sessions**: Click on any session in the Sessions list
-4. **Delete Sessions**: Click the three-dot menu on a session and select "Delete"
-5. **Send Messages**: Type your message and press Enter or click the send button
+## 🔧 Advanced Features
 
-### RAG & Web Search with Document Upload (NEW!)
+### Multi-Document Analysis
+Upload multiple related documents:
+- AI synthesizes information across documents
+- Compares and contrasts content
+- Identifies patterns and relationships
+- Provides comprehensive answers
 
-Enhance your AI responses with real-time web search AND document uploads:
+### Document Citations
+AI always cites sources:
+```
+"According to Document 1 (report.pdf), revenue was $16.5M..."
+"Document 2 (notes.txt) mentions that the project timeline is 6 months..."
+```
 
-1. **Enable RAG**
-   - Click the three-dot menu (⋮) in the header
-   - Toggle "Enable RAG Search" switch
-   - Or open Settings (⚙️ Settings option or Ctrl/Cmd+K)
-   - Choose your search engine: DuckDuckGo (free) or Brave Search (requires API key)
+### Privacy & Security
+- ✅ All document processing happens **locally in your browser**
+- ✅ No server uploads (documents never leave your device)
+- ✅ Documents stored in browser IndexedDB
+- ✅ Cleared when you clear browser data
+- ⚠️ Document content IS sent to AI providers when generating responses
 
-2. **Configure Search**
-   - **DuckDuckGo**: Works immediately, no API key needed
-   - **Brave Search**: Get free API key at https://brave.com/search/api/
-   - Set max search results (3-15 results)
-   - Toggle auto-search for automatic web searches on questions
+### Agent Mode
+Run multiple AI models simultaneously on the same prompt - perfect for comparing responses!
 
-3. **Upload Documents**
-   - Click the 📎 Upload button next to the send button
-   - Drag & drop files or click to browse
-   - Supported formats: TXT, MD, JSON, HTML, CSV (max 10MB)
-   - Documents are processed into chunks for optimal RAG
-   - AI uses document content to answer questions
+### Debate Mode
+Create AI debates with different personality types or teams for diverse perspectives.
 
-4. **Using RAG**
-   - **Web Search**: Ask questions naturally: "What are the latest AI developments?"
-   - **Document RAG**: Upload docs and ask questions about them
-   - **Combined**: Use both for comprehensive answers
-   - Auto-search detects questions and searches automatically
-   - Search results appear in an animated panel
-   - Click results to open sources in new tabs
-   - AI uses both web + documents to provide accurate responses
+## 📄 Supported File Formats
 
-5. **RAG Features**
-   - 🔍 Real-time web search integration
-   - 📄 Document upload and processing
-   - 📊 Visual search results panel
-   - 🎯 Smart auto-detection of questions
-   - 🌐 Privacy-focused search engines
-   - 💾 Settings saved automatically
-   - 🔘 Per-session RAG toggle (three-dot menu)
-   - 📎 Context indicator showing active sources
+| Format | Extension | Max Size | Notes |
+|--------|-----------|----------|-------|
+| PDF | `.pdf` | 10 MB | Full text extraction |
+| Word | `.doc`, `.docx` | 10 MB | Microsoft Word |
+| Text | `.txt` | 5 MB | Plain text |
+| Markdown | `.md` | 5 MB | Preserves formatting |
+| CSV | `.csv` | 5 MB | Comma-separated |
+| JSON | `.json` | 5 MB | JSON data |
+| HTML | `.html` | 5 MB | Web pages |
+| RTF | `.rtf` | 5 MB | Rich Text Format |
 
-### Advanced Features
-- **Agent Mode**: Run multiple AI models simultaneously on the same prompt
-- **Debate Mode**: Create AI debates with different personality types or teams
-- **Session Management**: All conversations are saved locally in IndexedDB
-- **RAG Search**: Augment responses with web search results
-- **Document Upload**: Upload files for document-based RAG
-- **Settings Panel**: Configure all features from dedicated sidebar
-- **Quick Actions Menu**: Three-dot menu in header for instant controls
+## 💡 Best Practices
 
-## Finding More Free Models
+### ✅ Do's
+- Upload relevant documents for your questions
+- Use clear, well-structured documents
+- Keep files under recommended size limits
+- Remove documents when no longer needed
+- Ask specific questions for better answers
 
-To discover all available free models on OpenRouter:
+### ❌ Don'ts
+- Avoid uploading huge files (>10 MB)
+- Don't mix unrelated topics in one session
+- Avoid scanned PDFs without text (OCR not supported yet)
+- Don't overload with too many large documents
+- Skip uploading empty or corrupted files
 
-1. Visit https://openrouter.ai/models
-2. Use the "Free" filter to see all free models
-3. Copy the model ID (e.g., `meta-llama/llama-3.1-8b-instruct:free`)
-4. Add it to the `OPENROUTER_MODELS` constant in `src/lib/openrouterApi.ts`
-
-## Troubleshooting
-
-### OpenRouter API Not Working
-1. Check your API key is correctly set in `.env`
-2. Restart the development server after adding/changing API keys
-3. Check browser console for error messages
-4. Verify your API key at https://openrouter.ai/keys
-
-### No Providers Available
-- Make sure at least one API key is set in `.env`
-- Restart the development server
-- Check the browser console for "Environment Variables Check" logs
-
-### Document Upload Issues
-1. **File too large**: Max size is 10MB per file
-2. **Unsupported format**: Use TXT, MD, JSON, HTML, or CSV
-3. **Processing failed**: Check browser console for detailed errors
-4. **Documents not showing**: Click "Manage" button below input area
-
-### RAG Not Working
-1. Check RAG is enabled (three-dot menu in header)
-2. Verify settings are configured (Ctrl/Cmd+K)
-3. For Brave Search: ensure API key is valid
-4. Documents must be uploaded before asking questions
-
-## Project Structure
+## 🛠️ Project Structure
 
 ```
 src/
 ├── components/
-│   ├── ChatArea.tsx            # Main chat interface
-│   ├── ChatSidebar.tsx         # Sidebar with sessions and models
-│   ├── ChatMessage.tsx         # Individual message component
-│   ├── SettingsSidebar.tsx     # Settings configuration panel
-│   ├── SearchPanel.tsx         # Search results display
-│   ├── DocumentUpload.tsx      # Document upload interface
-│   ├── RAGIndicator.tsx        # RAG status indicator
-│   ├── DesktopHeader.tsx       # Desktop header with menu
-│   └── MobileHeader.tsx        # Mobile header with menu
+│   ├── ChatArea.tsx           # Main chat interface with RAG
+│   ├── ChatSidebar.tsx        # Sessions and model selector
+│   ├── ChatMessage.tsx        # Message display component
+│   ├── DocumentUpload.tsx     # Document upload interface
+│   ├── RAGIndicator.tsx       # RAG status indicator
+│   ├── SettingsSidebar.tsx    # Configuration panel
+│   ├── DesktopHeader.tsx      # Desktop header
+│   └── MobileHeader.tsx       # Mobile header
 ├── lib/
-│   ├── db.ts                   # IndexedDB service
-│   ├── searchApi.ts            # Web search integration
-│   ├── documentProcessor.ts    # Document text extraction
-│   ├── poeApi.ts               # Poe API integration
-│   └── utils.ts                # Utility functions
+│   ├── db.ts                  # IndexedDB storage service
+│   ├── documentProcessor.ts   # Document text extraction
+│   ├── aiApi.ts               # Unified AI API interface
+│   ├── groqApi.ts             # Groq integration
+│   ├── openrouterApi.ts       # OpenRouter integration
+│   ├── togetherApi.ts         # Together AI integration
+│   └── poeApi.ts              # Poe integration
 ├── hooks/
-│   └── useRAG.ts               # RAG functionality hook
+│   └── useRAG.ts              # RAG functionality hook
 └── pages/
-    └── Index.tsx               # Main page with state management
+    └── Index.tsx              # Main application page
 ```
 
-## Technologies
+## 🔍 Troubleshooting
 
-- **Vite** - Fast build tool
-- **React** - UI framework
-- **TypeScript** - Type safety
-- **shadcn/ui** - UI components
-- **Tailwind CSS** - Styling
-- **IndexedDB** - Local database
-- **Multiple AI APIs** - Poe, Together AI, Groq, OpenRouter
-- **DuckDuckGo API** - Free web search
-- **Brave Search API** - Premium web search
+### Document Won't Upload
+**Problem**: File not uploading or processing fails
 
-## Project info
+**Solutions**:
+- Check file size (should be under 10 MB)
+- Verify file format is supported
+- Ensure file isn't corrupted or empty
+- Try a different browser if issues persist
+- Check browser console for error messages
 
-**URL**: https://lovable.dev/projects/580a49b9-1db2-444a-919e-e0ef52b117b2
+### AI Not Using Document Context
+**Problem**: AI responses don't reference uploaded documents
 
-## How can I edit this code?
+**Solutions**:
+- Verify RAG is enabled (toggle in header)
+- Confirm documents uploaded successfully (green checkmark)
+- Ask questions directly related to document content
+- Rephrase your question to be more specific
+- Ensure documents contain relevant information
 
-There are several ways of editing your application.
+### Slow Performance
+**Problem**: Document processing or responses are slow
 
-**Use Lovable**
+**Solutions**:
+- Reduce document file sizes
+- Remove unnecessary documents from session
+- Use text formats instead of PDFs when possible
+- Close other browser tabs to free memory
+- Try a faster AI provider (e.g., Groq)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/580a49b9-1db2-444a-919e-e0ef52b117b2) and start prompting.
+### No Providers Available
+**Problem**: No AI models showing in sidebar
 
-Changes made via Lovable will be committed automatically to this repo.
+**Solutions**:
+- Ensure at least one API key is set in `.env`
+- Restart the development server after adding keys
+- Check browser console for error messages
+- Verify API key validity at provider's website
 
-**Use your preferred IDE**
+## 📖 Documentation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- **[RAG Documentation](./RAG_DOCUMENTATION.md)** - Complete RAG guide with technical details
+- **[RAG Summary](./RAG_SUMMARY.md)** - Quick reference for RAG features
+- **[Quick Start Guide](./QUICK_START.md)** - Getting started guide
+- **[Feature Summary](./FEATURE_SUMMARY.md)** - All features overview
+- **[Changelog](./CHANGELOG.md)** - Version history and updates
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/580a49b9-1db2-444a-919e-e0ef52b117b2) and click on Share -> Publish.
-
-## API Integration Details
-
-### Poe API Endpoints
-
-The application uses the Poe Chat Completions API:
-- **Endpoint**: `https://api.poe.com/v1/chat/completions`
-- **Method**: POST
-- **Authentication**: Bearer token
-
-### Request Format
-
-```json
-{
-  "model": "GPT-5-mini",
-  "messages": [
-    {"role": "user", "content": "Hello world"}
-  ],
-  "temperature": 0.7,
-  "max_tokens": 2000,
-  "stream": true
-}
-```
-
-## Database Schema
-
-### Sessions Table
-- `id`: Unique session identifier
-- `title`: Session display name
-- `timestamp`: Creation timestamp
-- `modelName`: Associated AI model
-- `lastMessage`: Preview of last message
-
-### Messages Table
-- `id`: Unique message identifier
-- `sessionId`: Reference to session
-- `role`: "user" or "ai"
-- `content`: Message text
-- `timestamp`: Message timestamp
-- `modelName`: Model used (for AI messages)
-- `metadata`: Performance metrics
-
-## Deployment
-
-Simply open [Lovable](https://lovable.dev/projects/580a49b9-1db2-444a-919e-e0ef52b117b2) and click on Share -> Publish.
-
-## Custom Domain
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
-
-## RAG Documentation
-
-For detailed information about RAG and Web Search features, see [RAG_SEARCH_GUIDE.md](./RAG_SEARCH_GUIDE.md)
-
-Topics covered:
-- How RAG works with web search + documents
-- Setting up search engines
-- API key configuration
-- Document upload and processing
-- Auto-search feature
-- Search panel usage
-- Manual RAG control per session
-- Supported file formats
-- Privacy and security
-- Troubleshooting
-- Technical architecture
-
-## Keyboard Shortcuts
+## ⌨️ Keyboard Shortcuts
 
 - **Ctrl/Cmd + K**: Open settings sidebar
 - **Enter**: Send message
 - **Shift + Enter**: New line in message input
 
-## License
+## 🔗 Project Links
 
-MIT
+- **Lovable Project**: https://lovable.dev/projects/580a49b9-1db2-444a-919e-e0ef52b117b2
+- **Documentation**: See files in project root
+
+## 🛠️ Technologies Used
+
+- **Vite** - Fast build tool
+- **React** - UI framework
+- **TypeScript** - Type safety
+- **shadcn/ui** - Beautiful UI components
+- **Tailwind CSS** - Utility-first styling
+- **IndexedDB** - Browser-based database
+- **Multiple AI APIs** - Groq, OpenRouter, Together AI, Poe
+- **PDF.js** - PDF text extraction
+- **Mammoth.js** - Word document processing
+
+## 🚀 Deployment
+
+### Using Lovable
+Simply open [Lovable](https://lovable.dev/projects/580a49b9-1db2-444a-919e-e0ef52b117b2) and click on **Share → Publish**.
+
+### Custom Domain
+Navigate to **Project > Settings > Domains** and click **Connect Domain**.
+
+Read more: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## 💻 Development
+
+### Local Development
+
+```bash
+# Clone the repository
+git clone <YOUR_GIT_URL>
+
+# Navigate to project
+cd <YOUR_PROJECT_NAME>
+
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+```
+
+### Build for Production
+
+```bash
+# Create production build
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+### Code Style
+
+```bash
+# Run linter
+npm run lint
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow the guidelines in [AGENTS.md](./AGENTS.md) for:
+- Code style and conventions
+- Commit message format
+- Pull request guidelines
+- Testing requirements
+
+## 📊 Database Schema
+
+### Sessions Table
+- `id`: Unique session identifier
+- `title`: Session display name
+- `timestamp`: Creation timestamp
+- `modelName`: Associated AI model (format: "provider:modelId")
+- `provider`: AI provider name
+- `modelId`: Model identifier
+- `lastMessage`: Preview of last message
+
+### Messages Table
+- `id`: Unique message identifier
+- `sessionId`: Reference to parent session
+- `role`: "user" or "ai"
+- `content`: Message text content
+- `timestamp`: Message timestamp
+- `modelName`: Model used (for AI messages)
+- `metadata`: Performance metrics (duration, tokens, speed)
+
+## 🔐 Security & Privacy
+
+### Data Storage
+- All data stored locally in browser IndexedDB
+- No server-side storage or database
+- Documents processed client-side
+- Session data persists until manually deleted or browser data cleared
+
+### API Communication
+- API keys stored in environment variables
+- Never committed to version control
+- HTTPS encryption for all API calls
+- Document content sent to AI providers only during generation
+
+### Best Practices
+- Use `.env` file for API keys (never commit)
+- Clear browser data when using shared computers
+- Review AI provider privacy policies
+- Use private/incognito mode for sensitive documents
+
+## ❓ FAQ
+
+**Q: Are my documents saved on a server?**  
+A: No. All documents are processed and stored locally in your browser.
+
+**Q: Can I use RAG with any AI model?**  
+A: Yes. RAG works with all supported providers.
+
+**Q: How many documents can I upload?**  
+A: Limited by browser storage (typically 50 MB - 1 GB). Recommended: 5-10 documents per session.
+
+**Q: Do documents persist across sessions?**  
+A: Documents are session-specific. Each chat has its own document set.
+
+**Q: Does RAG work offline?**  
+A: Document processing works offline, but AI responses require internet.
+
+**Q: Which file formats are best?**  
+A: Text-based formats (TXT, MD) are fastest. PDFs work well but are slower to process.
+
+## 🗺️ Roadmap
+
+### Coming Soon
+- [ ] Image OCR support (extract text from scanned PDFs)
+- [ ] Document summarization
+- [ ] Advanced semantic search within documents
+- [ ] Document versioning
+- [ ] Export/import document sets
+- [ ] Citation highlighting in responses
+
+### Under Consideration
+- [ ] Multi-modal RAG (images, audio, video)
+- [ ] Cloud storage integration
+- [ ] Real-time collaboration
+- [ ] Custom chunking strategies
+- [ ] Vector embeddings for better retrieval
+
+## 📝 License
+
+MIT License - See LICENSE file for details
+
+---
+
+**Built with ❤️ using React, TypeScript, and modern web technologies**
+
+For detailed RAG documentation, see [RAG_DOCUMENTATION.md](./RAG_DOCUMENTATION.md)

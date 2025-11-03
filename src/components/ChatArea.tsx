@@ -1,11 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import {
-    Send,
-    Loader2,
-    Search as SearchIcon,
-    Upload,
-    FileText,
-} from "lucide-react";
+import { Send, Loader2, Upload, FileText } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
 import { MobileHeader } from "./MobileHeader";
 import { DesktopHeader } from "./DesktopHeader";
@@ -15,8 +9,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { chatDB, Message } from "@/lib/db";
 import { aiApi, UnifiedMessage, Provider } from "@/lib/aiApi";
 import { useToast } from "@/hooks/use-toast";
-import { useRAG } from "@/hooks/useRAG";
-import { SearchResponse, getSearchSettings } from "@/lib/searchApi";
 import {
     ProcessedDocument,
     formatDocumentsForRAG,
@@ -28,9 +20,6 @@ interface ChatAreaProps {
     sessionId?: string;
     modelName?: string;
     provider?: Provider;
-    onSearchResults?: (results: SearchResponse) => void;
-    onSearchStart?: () => void;
-    onSearchEnd?: () => void;
     onOpenSettings?: () => void;
 }
 
@@ -39,9 +28,6 @@ export const ChatArea = ({
     sessionId,
     modelName,
     provider,
-    onSearchResults,
-    onSearchStart,
-    onSearchEnd,
     onOpenSettings,
 }: ChatAreaProps) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -50,19 +36,26 @@ export const ChatArea = ({
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [sessionTitle, setSessionTitle] = useState("");
-    const [isSearching, setIsSearching] = useState(false);
-    const [currentSearchResults, setCurrentSearchResults] =
-        useState<SearchResponse | null>(null);
     const [uploadedDocuments, setUploadedDocuments] = useState<
         ProcessedDocument[]
     >([]);
     const [documentPanelOpen, setDocumentPanelOpen] = useState(false);
     const [ragEnabledForSession, setRagEnabledForSession] = useState(true);
     const { toast } = useToast();
-    const { performWebSearch, getRAGContext, shouldAutoSearch } = useRAG();
 
-    // Get RAG settings
-    const ragSettings = getSearchSettings();
+    // Get RAG settings from localStorage
+    const getRAGSettings = () => {
+        const settings = localStorage.getItem("chatbotx-settings");
+        if (settings) {
+            const parsed = JSON.parse(settings);
+            return {
+                ragEnabled: parsed.ragEnabled ?? true,
+            };
+        }
+        return { ragEnabled: true };
+    };
+
+    const ragSettings = getRAGSettings();
 
     // Combined RAG enabled state (global setting AND session toggle)
     const isRagEnabled = ragSettings.ragEnabled && ragEnabledForSession;
@@ -127,6 +120,21 @@ export const ChatArea = ({
         }
     };
 
+    const generateDocumentInstruction = (documentCount: number): string => {
+        return `\n\n[IMPORTANT INSTRUCTIONS - You MUST follow these guidelines]\n
+You have access to ${documentCount} document(s) uploaded by the user. These documents contain crucial information that you should use to answer the user's questions.
+
+GUIDELINES:
+1. **Primary Source**: Always prioritize information from the uploaded documents when answering questions related to their content
+2. **Citation**: When referencing information from documents, mention which document you're citing (e.g., "According to Document 1...")
+3. **Accuracy**: Only state information that is explicitly mentioned in the documents. Do not make assumptions beyond what's written
+4. **Completeness**: If the documents don't contain enough information to fully answer the question, acknowledge this limitation
+5. **Context**: Use your general knowledge to provide context, but clearly distinguish between document content and your general knowledge
+6. **Synthesis**: When multiple documents are relevant, synthesize information across them coherently
+
+Now, please answer the user's question using the document context provided above.\n\n`;
+    };
+
     const handleSendMessage = async () => {
         if (
             !input.trim() ||
@@ -162,31 +170,15 @@ export const ChatArea = ({
             await chatDB.addMessage(userMessage);
             setMessages((prev) => [...prev, userMessage]);
 
-            // Build RAG context from multiple sources
+            // Build RAG context from uploaded documents
             let ragContext = "";
 
-            // 1. Add uploaded documents context
             if (isRagEnabled && uploadedDocuments.length > 0) {
                 const docContext = formatDocumentsForRAG(uploadedDocuments);
                 ragContext += docContext;
-            }
-
-            // 2. Add web search context if auto-search is enabled
-            if (isRagEnabled && shouldAutoSearch(userMessageContent)) {
-                setIsSearching(true);
-                onSearchStart?.();
-                const searchResponse =
-                    await performWebSearch(userMessageContent);
-                setIsSearching(false);
-                onSearchEnd?.();
-
-                if (searchResponse && searchResponse.results.length > 0) {
-                    ragContext += getRAGContext(searchResponse);
-                    setCurrentSearchResults(searchResponse);
-                    onSearchResults?.(searchResponse);
-                } else {
-                    setCurrentSearchResults(null);
-                }
+                ragContext += generateDocumentInstruction(
+                    uploadedDocuments.length,
+                );
             }
 
             // Prepare messages for API
@@ -304,7 +296,7 @@ export const ChatArea = ({
                 },
                 // onError
                 (error: Error) => {
-                    console.error("Error from Poe API:", error);
+                    console.error("Error from AI API:", error);
                     toast({
                         title: "Error",
                         description:
@@ -337,164 +329,276 @@ export const ChatArea = ({
         }
     };
 
+    const handleDocumentUpload = (documents: ProcessedDocument[]) => {
+        setUploadedDocuments((prev) => [...prev, ...documents]);
+        toast({
+            title: "Documents Uploaded",
+            description: `Successfully uploaded ${documents.length} document(s) for RAG context`,
+        });
+    };
+
+    const handleRemoveDocument = (docId: string) => {
+        setUploadedDocuments((prev) => prev.filter((doc) => doc.id !== docId));
+        toast({
+            title: "Document Removed",
+            description: "Document removed from RAG context",
+        });
+    };
+
     return (
         <div className="flex-1 flex flex-col h-screen">
             {/* Headers */}
-            <MobileHeader
-                onMenuClick={onMenuClick}
-                sessionTitle={sessionTitle}
-                ragEnabled={isRagEnabled}
-                isSearching={isSearching}
-                resultsCount={currentSearchResults?.results.length || 0}
-                searchEngine={ragSettings.searchEngine}
-                onOpenSettings={onOpenSettings}
-                onToggleRAG={setRagEnabledForSession}
-                documentCount={uploadedDocuments.length}
-            />
-            <DesktopHeader
-                sessionTitle={sessionTitle}
-                ragEnabled={isRagEnabled}
-                isSearching={isSearching}
-                resultsCount={currentSearchResults?.results.length || 0}
-                searchEngine={ragSettings.searchEngine}
-                onOpenSettings={onOpenSettings}
-                onToggleRAG={setRagEnabledForSession}
-                documentCount={uploadedDocuments.length}
-            />
+            <div className="lg:hidden">
+                <MobileHeader
+                    onMenuClick={onMenuClick}
+                    sessionTitle={sessionTitle}
+                />
+            </div>
+            <div className="hidden lg:block">
+                <DesktopHeader
+                    sessionTitle={sessionTitle}
+                    ragEnabled={ragEnabledForSession}
+                    onToggleRAG={() =>
+                        setRagEnabledForSession(!ragEnabledForSession)
+                    }
+                    uploadedDocumentCount={uploadedDocuments.length}
+                    onOpenDocuments={() => setDocumentPanelOpen(true)}
+                    onOpenSettings={onOpenSettings}
+                />
+            </div>
 
-            {/* Messages */}
-            <ScrollArea className="flex-1 w-full" ref={scrollAreaRef}>
-                <div className="max-w-5xl mx-auto px-2 sm:px-3 py-3 sm:py-4 md:p-6">
+            {/* Main Chat Area */}
+            <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+                <div className="max-w-4xl mx-auto space-y-4">
                     {messages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                            <div className="text-muted-foreground mb-4">
-                                <svg
-                                    className="w-16 h-16 mx-auto mb-4 opacity-50"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                        <div className="text-center py-12 space-y-6">
+                            <div className="space-y-2">
+                                <h2 className="text-2xl font-bold text-foreground">
+                                    Welcome to ChatBotX RAG! 🚀
+                                </h2>
+                                <p className="text-muted-foreground">
+                                    Upload documents to enhance AI responses
+                                    with your own content
+                                </p>
+                            </div>
+
+                            {/* Document Upload Card */}
+                            <div className="bg-muted/50 border-2 border-dashed rounded-lg p-8 max-w-2xl mx-auto">
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="p-4 bg-primary/10 rounded-full">
+                                        <FileText className="w-8 h-8 text-primary" />
+                                    </div>
+                                    <div className="space-y-2 text-center">
+                                        <h3 className="font-semibold text-lg">
+                                            Upload Your Documents
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground max-w-md">
+                                            Support for PDF, TXT, DOC, DOCX, and
+                                            more. The AI will use your documents
+                                            to provide accurate, context-aware
+                                            answers.
+                                        </p>
+                                    </div>
+                                    <DocumentUpload
+                                        onDocumentsProcessed={
+                                            handleDocumentUpload
+                                        }
                                     />
-                                </svg>
-                                <p className="text-lg font-medium">
-                                    {sessionId
-                                        ? "Start a conversation"
-                                        : "Create a new chat to get started"}
-                                </p>
-                                <p className="text-sm mt-2">
-                                    {sessionId
-                                        ? `Using ${modelName || "AI model"}`
-                                        : "Select a model from the sidebar"}
-                                </p>
+                                </div>
+                            </div>
+
+                            {/* Feature Highlights */}
+                            <div className="grid md:grid-cols-3 gap-4 max-w-3xl mx-auto pt-6">
+                                <div className="p-4 bg-muted/30 rounded-lg">
+                                    <div className="text-2xl mb-2">📄</div>
+                                    <h4 className="font-semibold mb-1">
+                                        Document Context
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                        AI uses your uploaded documents as
+                                        primary source
+                                    </p>
+                                </div>
+                                <div className="p-4 bg-muted/30 rounded-lg">
+                                    <div className="text-2xl mb-2">🎯</div>
+                                    <h4 className="font-semibold mb-1">
+                                        Accurate Answers
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                        Responses based on your specific content
+                                    </p>
+                                </div>
+                                <div className="p-4 bg-muted/30 rounded-lg">
+                                    <div className="text-2xl mb-2">🔒</div>
+                                    <h4 className="font-semibold mb-1">
+                                        Private & Secure
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                        Documents processed locally in your
+                                        browser
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     ) : (
                         messages.map((message) => (
-                            <ChatMessage
-                                key={message.id}
-                                role={message.role}
-                                content={message.content}
-                                modelName={message.modelName}
-                                metadata={message.metadata}
-                            />
+                            <ChatMessage key={message.id} message={message} />
                         ))
                     )}
                     {isLoading && (
-                        <div className="flex items-center gap-2 text-muted-foreground py-4">
+                        <div className="flex items-center gap-2 text-muted-foreground">
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            <span className="text-sm">AI is thinking...</span>
+                            <span>AI is thinking...</span>
                         </div>
                     )}
                 </div>
             </ScrollArea>
 
-            {/* Document Upload Panel */}
-            <DocumentUpload
-                isOpen={documentPanelOpen}
-                onClose={() => setDocumentPanelOpen(false)}
-                documents={uploadedDocuments}
-                onDocumentsChange={setUploadedDocuments}
-            />
-
             {/* Input Area */}
-            <div className="border-t border-border p-2 sm:p-3 md:p-6 bg-card safe-bottom flex-shrink-0">
-                <div className="max-w-5xl mx-auto w-full">
-                    {/* Document indicator */}
+            <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <div className="max-w-4xl mx-auto p-4">
+                    {/* RAG Status Bar */}
                     {uploadedDocuments.length > 0 && (
-                        <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-                            <FileText className="w-3 h-3" />
-                            <span>
-                                {uploadedDocuments.length} document
-                                {uploadedDocuments.length !== 1 ? "s" : ""} in
-                                context
-                            </span>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setDocumentPanelOpen(true)}
-                                className="h-5 text-xs px-2"
-                            >
-                                Manage
-                            </Button>
+                        <div className="mb-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-primary" />
+                                    <span className="text-sm font-medium">
+                                        RAG Context Active:{" "}
+                                        {uploadedDocuments.length} document(s)
+                                    </span>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setDocumentPanelOpen(true)}
+                                >
+                                    Manage
+                                </Button>
+                            </div>
                         </div>
                     )}
 
-                    <div className="flex gap-1.5 sm:gap-2 md:gap-3 items-end">
-                        <div className="relative flex-1 min-w-0">
-                            <Textarea
-                                ref={textareaRef}
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                placeholder={
-                                    sessionId
-                                        ? "Type your message... (RAG enabled for questions)"
-                                        : "Create a session first..."
-                                }
-                                rows={1}
-                                disabled={isLoading || !sessionId}
-                                className="min-h-[40px] sm:min-h-[44px] md:min-h-[60px] max-h-28 sm:max-h-32 resize-none bg-input border-border text-xs sm:text-sm md:text-base w-full pr-10"
-                            />
-                            {shouldAutoSearch(input) && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                    <SearchIcon className="w-4 h-4 text-primary animate-pulse" />
-                                </div>
-                            )}
+                    <div className="relative">
+                        <Textarea
+                            ref={textareaRef}
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder={
+                                uploadedDocuments.length > 0
+                                    ? "Ask questions about your documents..."
+                                    : "Type your message... (Upload documents for RAG)"
+                            }
+                            className="min-h-[60px] max-h-[200px] resize-none pr-24"
+                            disabled={isLoading}
+                        />
+                        <div className="absolute bottom-2 right-2 flex gap-2">
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setDocumentPanelOpen(true)}
+                                title="Upload Documents"
+                            >
+                                <Upload className="w-4 h-4" />
+                            </Button>
+                            <Button
+                                size="icon"
+                                onClick={handleSendMessage}
+                                disabled={!input.trim() || isLoading}
+                            >
+                                {isLoading ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Send className="w-4 h-4" />
+                                )}
+                            </Button>
                         </div>
+                    </div>
 
-                        {/* Upload Document Button */}
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-10 w-10 sm:h-11 sm:w-11 md:h-[60px] md:w-[60px] flex-shrink-0"
-                            onClick={() => setDocumentPanelOpen(true)}
-                            disabled={isLoading || !sessionId}
-                            title="Upload documents for RAG"
-                        >
-                            <Upload className="w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                        </Button>
-
-                        {/* Send Button */}
-                        <Button
-                            size="icon"
-                            className="h-10 w-10 sm:h-11 sm:w-11 md:h-[60px] md:w-[60px] flex-shrink-0"
-                            onClick={handleSendMessage}
-                            disabled={isLoading || !input.trim() || !sessionId}
-                        >
-                            {isLoading ? (
-                                <Loader2 className="w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5 animate-spin" />
-                            ) : (
-                                <Send className="w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                            )}
-                        </Button>
+                    <div className="mt-2 text-xs text-muted-foreground text-center">
+                        Press Enter to send, Shift+Enter for new line
+                        {uploadedDocuments.length > 0 && (
+                            <span className="ml-2">
+                                • Using {uploadedDocuments.length} document(s)
+                                as context
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
+
+            {/* Document Management Panel */}
+            {documentPanelOpen && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-background border rounded-lg shadow-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+                        <div className="p-4 border-b flex items-center justify-between">
+                            <h3 className="font-semibold text-lg">
+                                Manage RAG Documents
+                            </h3>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDocumentPanelOpen(false)}
+                            >
+                                Close
+                            </Button>
+                        </div>
+                        <ScrollArea className="flex-1 p-4">
+                            <div className="space-y-4">
+                                <div className="border-2 border-dashed rounded-lg p-6">
+                                    <DocumentUpload
+                                        onDocumentsProcessed={
+                                            handleDocumentUpload
+                                        }
+                                    />
+                                </div>
+
+                                {uploadedDocuments.length > 0 && (
+                                    <div className="space-y-2">
+                                        <h4 className="font-medium text-sm text-muted-foreground">
+                                            Uploaded Documents (
+                                            {uploadedDocuments.length})
+                                        </h4>
+                                        {uploadedDocuments.map((doc) => (
+                                            <div
+                                                key={doc.id}
+                                                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                                            >
+                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-medium text-sm truncate">
+                                                            {doc.filename}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {(
+                                                                doc.size / 1024
+                                                            ).toFixed(1)}{" "}
+                                                            KB • {doc.type}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        handleRemoveDocument(
+                                                            doc.id,
+                                                        )
+                                                    }
+                                                >
+                                                    Remove
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

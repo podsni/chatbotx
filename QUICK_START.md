@@ -24,7 +24,19 @@ Just ask questions naturally:
 ```
 ✨ Auto-search activates and enhances AI responses with web results!
 
-#### Option B: Upload Documents
+#### Option B: Web Search (Manual)
+Want to search before asking?
+1. Type your query: `berita hari ini di Malang`
+2. Click **🔍 Search button** (next to send button)
+3. Wait for results (they'll appear in a panel)
+4. Now send your message - AI will use those results!
+
+**OR** use **Quick Search**:
+- Click "Quick Search" button below input
+- Choose from popular searches (News, Weather, Crypto, etc.)
+- Instantly get current information!
+
+#### Option C: Upload Documents
 1. Click the **📎 Upload button** (next to send button)
 2. Drag & drop or click to select files
 3. Upload TXT, MD, JSON, HTML, or CSV files (max 10MB)
@@ -37,7 +49,7 @@ Example:
 - AI answers using your document! 📄
 ```
 
-#### Option C: Combined Power
+#### Option D: Combined Power
 Upload documents AND ask questions - get the best of both worlds!
 
 ---
@@ -53,10 +65,16 @@ Upload documents AND ask questions - get the best of both worlds!
 - `Enter`: Send message
 - `Shift + Enter`: New line
 
-### Upload Button (📎)
-- Next to send button
-- Upload documents for RAG
-- Manage uploaded files
+### Action Buttons (Input Area)
+- **🔍 Search Button**: Manual web search
+- **📎 Upload Button**: Upload documents for RAG
+- **Quick Search**: Popular search queries
+
+### Smart Suggestions
+The system will show helpful hints:
+- 💡 **Search Reminder**: For current events/location queries
+- 🔵 **Search Suggestion**: For general questions
+- ✅ **Search Ready**: When results are loaded
 
 ---
 
@@ -68,6 +86,8 @@ Upload documents AND ask questions - get the best of both worlds!
 - Technical documentation questions
 - Research and fact-checking
 - Document Q&A
+- Location-specific information
+- Statistics and data
 
 ❌ Disable RAG for:
 - Creative writing
@@ -75,13 +95,29 @@ Upload documents AND ask questions - get the best of both worlds!
 - Brainstorming
 - Personal opinions
 
-### 2. Document Upload Tips
+### 2. How to Trigger Search
+**Automatic** (if auto-search enabled):
+- Questions starting with: what, where, when, who, why, how
+- Questions ending with "?"
+
+**Manual** (always available):
+- Type your query
+- Click 🔍 search button
+- Use "Quick Search" for popular queries
+
+**AI-Assisted**:
+- Say: "search for [topic]"
+- Say: "cari informasi tentang [topic]"
+- Say: "berita hari ini di Malang"
+- System will prompt you to click search!
+
+### 3. Document Upload Tips
 - Convert PDFs to TXT for now (PDF support coming soon)
 - Use clear, descriptive filenames
 - Maximum 10MB per file
 - Supported: TXT, MD, JSON, HTML, CSV
 
-### 3. Search Engine Selection
+### 4. Search Engine Selection
 - **DuckDuckGo**: 
   - ✅ Free, no setup
   - ✅ Privacy-focused
@@ -97,32 +133,50 @@ Upload documents AND ask questions - get the best of both worlds!
 
 ## 🎯 Common Use Cases
 
-### Use Case 1: Research Assistant
+### Use Case 1: Current News (Manual Search)
 ```
-1. Enable RAG
-2. Ask: "What are the pros and cons of TypeScript vs JavaScript in 2024?"
-3. Get current, fact-based comparison with sources
+1. Type: "berita terbaru hari ini di Malang"
+2. Click 🔍 search button
+3. See search results in panel
+4. Ask follow-up question - AI uses those results!
 ```
 
-### Use Case 2: Document Analysis
+### Use Case 2: Quick Information (Quick Search)
+```
+1. Click "Quick Search" button
+2. Select "Berita Hari Ini" or "Cuaca Malang"
+3. Instant search + ready to chat with results!
+```
+
+### Use Case 3: Research Assistant (Auto)
+```
+1. Enable RAG + auto-search
+2. Ask: "What are the pros and cons of TypeScript vs JavaScript in 2024?"
+3. Get current, fact-based comparison with sources (auto-searched!)
+```
+
+### Use Case 4: Document Analysis
 ```
 1. Upload company-data.csv
 2. Ask: "What were the top 3 products by revenue?"
 3. AI analyzes your document and answers
 ```
 
-### Use Case 3: Learning & Education
+### Use Case 5: Combined Power
 ```
-1. Upload study-notes.md
-2. Ask: "Can you quiz me on the key concepts?"
-3. AI creates quiz from your notes
+1. Upload your study notes
+2. Type: "search for latest developments in this topic"
+3. Click 🔍 to get web results
+4. Ask: "Compare my notes with current trends"
+5. AI combines both sources!
 ```
 
-### Use Case 4: Fact-Checking
+### Use Case 6: AI-Requested Search
 ```
-1. Enable RAG with auto-search
-2. Ask: "Is it true that [claim]?"
-3. AI searches web and provides verified answer
+1. Say: "cari berita hari ini tentang AI"
+2. System detects search request
+3. Shows prompt: "Click search now!"
+4. One click to search and use results
 ```
 
 ---
@@ -167,6 +221,11 @@ When documents are uploaded:
 - Click to open sources
 - Collapsible interface
 
+### Search Button States
+🔍 **Default**: Ready to search
+🔄 **Searching**: Animated spinner
+✅ **Ready**: Green globe (results loaded)
+
 ---
 
 ## ❓ Troubleshooting
@@ -176,6 +235,12 @@ When documents are uploaded:
 2. ✅ Verify settings are configured (Ctrl+K)
 3. ✅ For Brave: ensure API key is valid
 4. ✅ Try toggling OFF then ON
+
+### Manual Search Not Working?
+1. ✅ RAG must be enabled first
+2. ✅ Type a query in the input box
+3. ✅ Click 🔍 button (not send button!)
+4. ✅ Wait for results, then send message
 
 ### Document Upload Failed?
 1. ✅ File size under 10MB?
@@ -212,7 +277,16 @@ Too many documents can slow responses. Use "Manage" button to remove unused file
 - 3-5 results: Fast, focused answers
 - 10-15 results: Comprehensive research
 
-### Tip 5: Use Keyboard Shortcuts
+### Tip 5: Use Manual Search for Better Control
+Type your query → Click 🔍 → Review results → Then ask your question!
+
+### Tip 6: Use Quick Search for Speed
+Click "Quick Search" for instant access to popular queries (news, weather, crypto, etc.)
+
+### Tip 7: Let AI Request Search
+Say "search for X" or "cari informasi Y" - AI will prompt you to click search!
+
+### Tip 8: Use Keyboard Shortcuts
 `Ctrl/Cmd + K` for quick settings access!
 
 ---
@@ -230,9 +304,12 @@ Too many documents can slow responses. Use "Manage" button to remove unused file
 
 That's it! You now know how to:
 - ✅ Enable and use RAG
+- ✅ Manual search with 🔍 button
+- ✅ Quick Search for popular queries
 - ✅ Upload documents for Q&A
 - ✅ Configure search engines
 - ✅ Control RAG per session
+- ✅ Use AI-assisted search requests
 - ✅ Get the best results
 
 **Happy chatting with enhanced AI!** 🚀

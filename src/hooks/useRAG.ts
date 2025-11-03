@@ -1,151 +1,104 @@
 import { useState, useCallback } from "react";
-import {
-  performSearch,
-  extractSearchQuery,
-  formatSearchResults,
-  getSearchSettings,
-  SearchResponse,
-} from "@/lib/searchApi";
-import { useToast } from "@/hooks/use-toast";
 
-export const useRAG = () => {
-  const [searchResults, setSearchResults] = useState<SearchResponse | null>(
-    null
-  );
-  const [isSearching, setIsSearching] = useState(false);
-  const { toast } = useToast();
+export interface RAGDocument {
+    id: string;
+    name: string;
+    content: string;
+    type: string;
+    size: number;
+    uploadedAt: number;
+}
 
-  /**
-   * Perform a web search based on user query
-   */
-  const performWebSearch = useCallback(
-    async (userMessage: string): Promise<SearchResponse | null> => {
-      const settings = getSearchSettings();
+export const useRAG = (chatId?: string) => {
+    const [documents, setDocuments] = useState<RAGDocument[]>([]);
 
-      if (!settings.ragEnabled) {
-        return null;
-      }
+    /**
+     * Add document to RAG context
+     */
+    const addDocument = useCallback((doc: RAGDocument) => {
+        setDocuments((prev) => [...prev, doc]);
+    }, []);
 
-      setIsSearching(true);
+    /**
+     * Remove document from RAG context
+     */
+    const removeDocument = useCallback((docId: string) => {
+        setDocuments((prev) => prev.filter((doc) => doc.id !== docId));
+    }, []);
 
-      try {
-        // Extract search query from user message
-        const searchQuery = extractSearchQuery(userMessage);
+    /**
+     * Clear all documents
+     */
+    const clearDocuments = useCallback(() => {
+        setDocuments([]);
+    }, []);
 
-        if (!searchQuery) {
-          console.log("⚠️ Could not extract search query");
-          setIsSearching(false);
-          return null;
+    /**
+     * Get RAG context from uploaded documents
+     */
+    const getRAGContext = useCallback((): string => {
+        if (documents.length === 0) {
+            return "";
         }
 
-        console.log(`🔍 Performing search: "${searchQuery}"`);
+        let context =
+            "\n[Document Context - Use this information to answer the user's question]\n\n";
 
-        // Perform search
-        const results = await performSearch(
-          searchQuery,
-          settings.searchEngine,
-          settings.maxSearchResults,
-          settings.braveApiKey
-        );
-
-        console.log(`✅ Found ${results.results.length} results`);
-        setSearchResults(results);
-        setIsSearching(false);
-
-        return results;
-      } catch (error) {
-        console.error("❌ Search error:", error);
-        toast({
-          title: "Search Error",
-          description:
-            error instanceof Error
-              ? error.message
-              : "Failed to perform web search",
-          variant: "destructive",
+        documents.forEach((doc, index) => {
+            context += `Document ${index + 1}: ${doc.name}\n`;
+            context += `${doc.content}\n\n`;
+            context += "---\n\n";
         });
-        setIsSearching(false);
-        return null;
-      }
-    },
-    [toast]
-  );
 
-  /**
-   * Get RAG context to augment AI prompts
-   */
-  const getRAGContext = useCallback(
-    (searchResponse: SearchResponse | null): string => {
-      if (!searchResponse || searchResponse.results.length === 0) {
-        return "";
-      }
+        context +=
+            "Please use the above document content to provide accurate information in your response.\n\n";
 
-      const context = formatSearchResults(searchResponse);
-      return `
+        return context;
+    }, [documents]);
 
-[Web Search Context - Use this to provide accurate, up-to-date information]
-${context}
+    /**
+     * Check if RAG is enabled for this chat
+     */
+    const isRAGEnabled = useCallback((): boolean => {
+        if (chatId) {
+            const chatSettings = localStorage.getItem(`chat-${chatId}-rag`);
+            if (chatSettings) {
+                return JSON.parse(chatSettings).enabled ?? true;
+            }
+        }
 
-Please use the above search results to provide accurate and current information in your response. Cite sources when relevant.
+        // Check global settings
+        const settings = localStorage.getItem("chatbotx-settings");
+        if (settings) {
+            const parsed = JSON.parse(settings);
+            return parsed.ragEnabled ?? true;
+        }
 
----
+        return true;
+    }, [chatId]);
 
-`;
-    },
-    []
-  );
-
-  /**
-   * Clear search results
-   */
-  const clearSearchResults = useCallback(() => {
-    setSearchResults(null);
-  }, []);
-
-  /**
-   * Check if auto-search is enabled
-   */
-  const shouldAutoSearch = useCallback((userMessage: string): boolean => {
-    const settings = getSearchSettings();
-
-    if (!settings.ragEnabled || !settings.autoSearch) {
-      return false;
-    }
-
-    // Auto-search for questions and queries
-    const questionWords = [
-      "what",
-      "where",
-      "when",
-      "who",
-      "why",
-      "how",
-      "is",
-      "are",
-      "can",
-      "could",
-      "would",
-      "should",
-      "do",
-      "does",
-    ];
-
-    const lowerMessage = userMessage.toLowerCase().trim();
-
-    // Check if message starts with question word or ends with ?
-    const startsWithQuestion = questionWords.some((word) =>
-      lowerMessage.startsWith(word + " ")
+    /**
+     * Toggle RAG for this chat
+     */
+    const toggleRAG = useCallback(
+        (enabled: boolean) => {
+            if (chatId) {
+                localStorage.setItem(
+                    `chat-${chatId}-rag`,
+                    JSON.stringify({ enabled }),
+                );
+            }
+        },
+        [chatId],
     );
-    const endsWithQuestion = lowerMessage.endsWith("?");
 
-    return startsWithQuestion || endsWithQuestion;
-  }, []);
-
-  return {
-    searchResults,
-    isSearching,
-    performWebSearch,
-    getRAGContext,
-    clearSearchResults,
-    shouldAutoSearch,
-  };
+    return {
+        documents,
+        addDocument,
+        removeDocument,
+        clearDocuments,
+        getRAGContext,
+        isRAGEnabled,
+        toggleRAG,
+    };
 };
